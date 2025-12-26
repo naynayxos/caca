@@ -1,6 +1,7 @@
 import pygame
 import sys
 import subprocess
+import gen_proc
 
 pygame.init()
 
@@ -123,9 +124,12 @@ while running:
             pygame.time.delay(200)
             if button.action == "new":
                 print("Nouvelle Partie")
-                pygame.quit()
-                subprocess.run(["python", "game.py"])
-                sys.exit()
+                pygame.mixer.music.fadeout(1000)
+                gen_proc.lancer(fenetre)
+                try:
+                    pygame.mixer.music.play(-1)
+                except:
+                    pass
             elif button.action == "load":
                 print("Charger Partie")
             elif button.action == "options":

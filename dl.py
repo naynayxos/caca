@@ -8,7 +8,7 @@ pygame.init()
 WIDTH = 1920
 HEIGHT = 1080
 fenetre = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("FarLand Venture")
+pygame.display.set_caption("D-RED")
 
 # Couleurs
 BLACK = (0, 0, 0)
