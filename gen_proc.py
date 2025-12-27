@@ -8,7 +8,7 @@ LARGEUR = 1920
 HAUTEUR = 1080
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
-VITESSEJOUEUR = 20
+VITESSEJOUEUR = 10
 VIDE = 2
 MUR = 1
 SOL = 0
@@ -32,22 +32,33 @@ def texture(nom,taille = None):
 
 #Effet Lumiere
 def lumiere(rayon):
-    t = rayon*2
+    t = rayon*2.5
     s = pygame.Surface((t,t),pygame.SRCALPHA)
-    c = (rayon,rayon)
-    pygame.draw.circle(s,(255,255,255,220),c,25)
-    nb =30
-    largeurcone=55
-    for i in range(nb):
-        a = int(255*(1-(i/nb)**1.5))
-        distance = rayon * ((nb-i)/nb)
-        angle = math.radians(largeurcone/2)
-        k1=(c[0]+distance,c[1]-(distance*math.tan(angle)))
-        k2=(c[0]+distance,c[1]+(distance*math.tan(angle)))
-        points = [c,k1,k2]
-        couleur = (255,255,235, a//5)
-        pygame.draw.polygon(s,couleur,points)
+    c = (t//2,t//2)
+    #plusieur cercle pour tamiser
+    for i in range(rayon//2,0,-2):
+        a = int(100*(i/(rayon//2)))
+        if a>0:
+            pygame.draw.circle(s,(255,240,200,5),c,i)
+    longueurcone = rayon
+    angless=30
+    etape = 100 #Puissance dégradé
+    for i in range(etape):
+        distance = (i/etape)*longueurcone
+        largeur= int(distance*math.tan(math.radians(angless)))
+        posx = c[0]+distance
+        posy = c[1]
+        p=60*(1-(i/etape))
+        if largeur>0:
+            brosse = pygame.Surface((largeur*2,largeur*2), pygame.SRCALPHA)
+            pygame.draw.circle(brosse,(255,250,220,int(p)),(largeur,largeur),largeur)
+            dist = brosse.get_rect(center=(posx,posy))
+            s.blit(brosse,dist,special_flags=pygame.BLEND_RGBA_ADD)
     return s
+
+def angletrace(c, t, f):
+    d = (t-c+180)%360-180
+    return c+d*f
 
 #couloir verticale
 def c_vertical(grille, y1,y2,x):
@@ -126,8 +137,13 @@ def lancer(ecran):
 
     #Chargement assets
     img_sol = texture("sol.png")
-    img_mur = texture("mur.png")
-    img_joueur = texture("joueur.png",(48,48))
+    img_murface = texture("murface.png")
+    img_murtop = texture("murtop.png")
+    animationjoueur = [
+    texture("joueur.png",(48,48)),
+    texture("joueurgauche.png",(48,48)),
+    texture("joueurdroit.png",(48,48))
+    ]
     lumierefin = lumiere(450)
 
     #Partie
@@ -136,13 +152,17 @@ def lancer(ecran):
     joueurx = pos[0]*ZOOM+(ZOOM//2)
     joueury = pos[1]*ZOOM+(ZOOM//2)
     #hitbox
-    joueur_rect = pygame.Rect(0,0,32,32)
+    joueur_rect = pygame.Rect(0,0,20,20)
     joueur_rect.center = (joueurx, joueury)
 
     lumiereallume = False
     angle = 0
+    angleactuelle = 0
     dernierkx = 1
     dernierky =0
+    animation = 0
+    time = 0
+    vitesse = 15
 
     running = True
     while running:
@@ -174,10 +194,19 @@ def lancer(ecran):
         #Mise a jour angle
         if kx !=0 or ky != 0:
             dernierkx, dernierky=kx,ky
-        
-        angles = math.degrees(math.atan2(-dernierky, dernierkx))
-        angle = angles+90
-        anglelumiere = angles
+        anglecible = math.degrees(math.atan2(-dernierky, dernierkx))
+        angleactuelle = angletrace(angleactuelle,anglecible,0.15)
+        angle = angleactuelle+90
+        anglelumiere = angleactuelle
+
+        if kx!=0 or ky!=0:
+            time +=1
+            if time > vitesse:
+                time = 0
+                animation = (animation+1)%len(animationjoueur)
+        else:
+            animation = 0
+            time = 0
 
         #Deplacement X
         joueur_rect.x += kx
@@ -214,10 +243,16 @@ def lancer(ecran):
                 if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
                     if case == SOL and img_sol is not None:
                         ecran.blit(img_sol, (screen_x,screen_y))
-                    elif case == MUR and img_mur is not None:
-                        ecran.blit(img_mur, (screen_x,screen_y))
+                    elif case == MUR:
+                        if y+1<HAUTEURMAP and carte[y+1][x] == SOL:
+                            if img_murface:
+                                ecran.blit(img_murface,(screen_x,screen_y))
+                        else:
+                            if img_murtop:
+                                ecran.blit(img_murtop, (screen_x,screen_y))
 
         #Dessin joueur
+        img_joueur = animationjoueur[animation]
         if img_joueur is not None:
             joueurtourne = pygame.transform.rotate(img_joueur, angle)
             recttourne = joueurtourne.get_rect(center=(LARGEUR//2,HAUTEUR//2))
@@ -229,7 +264,7 @@ def lancer(ecran):
             masque = pygame.Surface((LARGEUR,HAUTEUR))
             masque.fill(NUIT)
             #Tourne lumiere
-            lumieretourne = pygame.transform.rotate(lumierefin,anglelumiere)
+            lumieretourne = pygame.transform.rotate(lumierefin,angleactuelle)
             rectlumiere = lumieretourne.get_rect(center =(LARGEUR//2,HAUTEUR//2))
             #Lumiere au masque
             masque.blit(lumieretourne,rectlumiere,special_flags=pygame.BLEND_ADD)
