@@ -45,6 +45,12 @@ class VolumeBar:
         self.cercley = y + 5 #Position verticale de la boule
         self.dragging = False #Indique si la poignée se déplace
 
+    def repositionner(self, x, y):
+        self.rect.x= x
+        self.rect.y = y
+        self.cercley = y + 5 #Position verticale de la boule
+        self.cerclex = self.rect.x + (self.rect.width * self.volume) #Position de la boule en x
+
     def draw(self, surface):
         #Fond de la barre
         pygame.draw.rect(surface,(100,100,100),self.rect, border_radius=5)
@@ -89,10 +95,10 @@ def option_menu(fenetre, largeur, hauteur):
     if pleinecran:
         btn_pleinecran.text = "MODE: PLEIN ECRAN"
     #Bouton Résolution
-    resolutions = [(1920,1080),(1600,900),(1280,720),(800,600)]
+    resolutions = [(1600,900),(1920,1080),(1920,1200),(2560,1440),(2560,1600),(3840,2160)]
     index = 0 #Index de la résolution premiere
     #Trouve l'index de la résolution actuelle
-    if (H,L) in resolutions:
+    if (L,H) in resolutions:
         index = resolutions.index((L,H))
     btn_resolution = Button(f"RESOLUTION: {L}x{H}", L//2-150,220,300,50)
     #Barre de volume
@@ -115,8 +121,8 @@ def option_menu(fenetre, largeur, hauteur):
 
         #Resize de l'écran
         if event.type == pygame.VIDEORESIZE:
-            H,L = event.w, event.h
-            fenetre = pygame.display.set_mode((H,L), pygame.RESIZABLE)
+            L,H = event.w, event.h
+            fenetre = pygame.display.set_mode((L,H), pygame.RESIZABLE)
             #Recentrage des boutons
             btn_pleinecran.rect.x = (L//2-150)
             btn_resolution.rect.x = (L//2-150)
@@ -143,9 +149,8 @@ def option_menu(fenetre, largeur, hauteur):
             #Recentrage des boutons
             btn_pleinecran.rect.x = (L//2-150)
             btn_resolution.rect.x = (L//2-150)
-            volume_barre.rect.x = (L//2-150)
-            volume_barre.cerclex = volume_barre.rect.x + (volume_barre.rect.width * volume_barre.volume)
-            volume_barre.rect.y = H-100
+            volume_barre.repositionner((L//2-150), 350)
+            btn_retour.rect.y = H-100
 
         #Bouton résolution
         if not pleinecran:
@@ -160,7 +165,7 @@ def option_menu(fenetre, largeur, hauteur):
                 #Recentrage des boutons
                 btn_pleinecran.rect.x = (L//2-150)
                 btn_resolution.rect.x = (L//2-150)
-                volume_barre.rect.x = (L//2-150)
+                volume_barre.repositionner((L//2-150), 350)
                 volume_barre.cerclex = volume_barre.rect.x + (volume_barre.rect.width * volume_barre.volume)
                 btn_retour.rect.y = H-100
 
@@ -175,7 +180,7 @@ def option_menu(fenetre, largeur, hauteur):
         fenetre.fill((30, 30, 30)) #Fond sombre
         #Affiche le mot "Options"
         titre = fonttitle.render("OPTIONS", True, WHITE)
-        fenetre.blit(titre, (H//2 - titre.get_width()//2, 50))
+        fenetre.blit(titre, (L//2 - titre.get_width()//2, 50))
 
         #Dessine les boutons
         btn_pleinecran.draw(fenetre, fonttext)
@@ -184,15 +189,15 @@ def option_menu(fenetre, largeur, hauteur):
         else:
             #En plein ecran on met Resolution désactivée
             txtpleinecran= fonttext.render("RESOLUTION ESACTIVE", True, (100,100,100))
-            fenetre.blit(txtpleinecran, (H//2 - txtpleinecran.get_width()//2, 230))
+            fenetre.blit(txtpleinecran, (L//2 - txtpleinecran.get_width()//2, 230))
 
         #Dessine la barre de volume
         dessin_volume = fonttext.render("VOLUME MUSIQUE", True, WHITE)
-        fenetre.blit(dessin_volume, (H//2 - dessin_volume.get_width()//2, 310))
+        fenetre.blit(dessin_volume, (L//2 - dessin_volume.get_width()//2, 310))
         volume_barre.draw(fenetre)
 
         #Tableau de touche du jeu
-        tableau_touche = pygame.Rect(H//2 - 200, 450, 500, 200)
+        tableau_touche = pygame.Rect(L//2 - 200, 450, 400, 260)
         pygame.draw.rect(fenetre, (50,50,50), tableau_touche, border_radius=15)
         pygame.draw.rect(fenetre, GOLD, tableau_touche, 2, border_radius=15)
         commande = ["COMMANDES DU JEU:","AVANCER: Z","RECULER: S","GAUCHE: Q","DROITE: D","SAUTER: ESPACE","PAUSE: ECHAP","LUMIERE: H"]
@@ -204,7 +209,7 @@ def option_menu(fenetre, largeur, hauteur):
             #Reduction de la taille du texte si trop large
             if i == 0: texte= pygame.transform.scale(texte, (int(texte.get_width()*0.5), int(texte.get_height()*0.5)))
             #Affichage des lignes
-            fenetre.blit(texte,(H//2 - texte.get_width()//2, 470+i*30))
+            fenetre.blit(texte,(L//2 - texte.get_width()//2, 470+i*30))
         btn_retour.draw(fenetre, fonttext)
         pygame.display.flip()
         clock.tick(60)

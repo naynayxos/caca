@@ -18,8 +18,8 @@ pygame.mixer.music.load("ressource/Musique.mp3")
 pygame.mixer.music.play(-1) #Musique en boucle
 
 #image de fond
-background = pygame.image.load("ressource/images.jpg")
-background = pygame.transform.scale(background, (WIDTH, HEIGHT)) 
+backgroundori = pygame.image.load("ressource/images.jpg")
+background = pygame.transform.scale(backgroundori, (WIDTH, HEIGHT)) 
 
 #Couleur
 WHITE = (255,255,255)
@@ -36,7 +36,7 @@ GOLD_TRANSPARENT = (255, 215, 0, 100)
 #Police
 try:
     FONT_TITLE = pygame.font.Font("ressource/titre.ttf", 72)
-    FONT_BUTTON = pygame.font.Font("ressource/police.ttf", 36)
+    FONT_BUTTON = pygame.font.Font("ressource/police.ttf", 28)
 
 except:
     FONT_TITLE = pygame.font.SysFont(None, 72)
@@ -47,9 +47,9 @@ class Button:
         self.text = text
         self.action = action
         self.center_y = center_y
-        self.width = 380
-        self.height = 60
-        self.rect = pygame.Rect((center_x,center_y,self.width,self.height))
+        self.width = 280
+        self.height = 50
+        self.rect = pygame.Rect((0,0,self.width,self.height))
         self.led = 0
         self.dore = 0
     
@@ -104,6 +104,24 @@ buttons = [
     Button("Quitter", button_x + (button_width + button_spacing) * 3, button_y, "quit")
 ]
 
+#Recalcul de la resolution après le menu des options
+def update_resolution(L, H):
+    global background
+    #Redimensionner l'image de fond
+    background = pygame.transform.scale(backgroundori, (L, H))
+    #Repositionner les boutons
+    btnespace = 30
+    btnL=280
+    btnH=50
+    totalL = (btnL * 4) + (btnespace * 3)
+    startX = (L - totalL) // 2
+    pos_y = H - 100
+    #Met à jour la position des boutons
+    for i, button in enumerate(buttons):
+        button.rect.topleft = (startX + i * (btnL + btnespace), pos_y)
+#On l'appelle une première fois pour initialiser les positions
+update_resolution(WIDTH, HEIGHT)
+
 running = True
 clock = pygame.time.Clock()
 
@@ -139,6 +157,10 @@ while running:
                 fenetre=option.option_menu(fenetre, WIDTH, HEIGHT)
                 #Actualiser la taille de la fenêtre après le menu des options
                 WIDTH, HEIGHT = fenetre.get_size()
+                update_resolution(WIDTH, HEIGHT)
+                #Pour eviter missvkivk entre retour et nouvelle partie
+                pygame.event.clear()
+                pygame.time.delay(300)
             elif button.action == "quit":
                 running = False
     
