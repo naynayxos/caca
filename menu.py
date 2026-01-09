@@ -2,6 +2,7 @@ import pygame
 import sys
 import subprocess
 import gen_proc
+import option
 
 pygame.init()
 
@@ -134,6 +135,10 @@ while running:
                 print("Charger Partie")
             elif button.action == "options":
                 print("Options")
+                # Lancer le menu des options
+                fenetre=option.option_menu(fenetre, WIDTH, HEIGHT)
+                #Actualiser la taille de la fenêtre après le menu des options
+                WIDTH, HEIGHT = fenetre.get_size()
             elif button.action == "quit":
                 running = False
     
