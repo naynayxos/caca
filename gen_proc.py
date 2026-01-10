@@ -20,12 +20,15 @@ pygame.display.set_caption("D-RED")
 clock = pygame.time.Clock()
 
 #assets
-def texture(nom,taille = None):
+def texture(nom,taille = None, transparente = False):
     chemin = os.path.join("ressource", nom)
     try:
         img= pygame.image.load(chemin)
+        if transparente:
+            img.set_colorkey((255,255,255))
         if taille:
-            img= pygame.transform.scale(img, (ZOOM, ZOOM))
+            w,h= taille
+            img= pygame.transform.scale(img, (w, h))
         return img.convert_alpha()
     except:
         return None
@@ -136,13 +139,13 @@ def obstacle(rect_joueur,grille):
 def lancer(ecran):
 
     #Chargement assets
-    img_sol = texture("sol.png")
-    img_murface = texture("murface.png")
-    img_murtop = texture("murtop.png")
+    img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))
+    img_murface = texture("murface.png", (ZOOM+1, ZOOM+1))
+    img_murtop = texture("murtop.png", (ZOOM+1, ZOOM+1))
     animationjoueur = [
-    texture("joueur.png",(48,48)),
-    texture("joueurgauche.png",(48,48)),
-    texture("joueurdroit.png",(48,48))
+    texture("joueur.png",(100,100), transparente=True),
+    texture("joueurgauche.png",(100,100), transparente=True),
+    texture("joueurdroit.png",(100,100), transparente=True)
     ]
     lumierefin = lumiere(450)
 
@@ -152,7 +155,7 @@ def lancer(ecran):
     joueurx = pos[0]*ZOOM+(ZOOM//2)
     joueury = pos[1]*ZOOM+(ZOOM//2)
     #hitbox
-    joueur_rect = pygame.Rect(0,0,20,20)
+    joueur_rect = pygame.Rect(0,0,40,40)
     joueur_rect.center = (joueurx, joueury)
 
     lumiereallume = False
@@ -162,7 +165,7 @@ def lancer(ecran):
     dernierky =0
     animation = 0
     time = 0
-    vitesse = 15
+    vitesse = 5
 
     running = True
     while running:
@@ -196,8 +199,6 @@ def lancer(ecran):
             dernierkx, dernierky=kx,ky
         anglecible = math.degrees(math.atan2(-dernierky, dernierkx))
         angleactuelle = angletrace(angleactuelle,anglecible,0.15)
-        angle = angleactuelle+90
-        anglelumiere = angleactuelle
 
         if kx!=0 or ky!=0:
             time +=1
@@ -207,6 +208,12 @@ def lancer(ecran):
         else:
             animation = 0
             time = 0
+
+        #Calcul angle pour perso
+        anglejoueur = math.degrees(math.atan2(-dernierky, dernierkx))
+        angleactuellejoueur = angletrace(angleactuelle, anglejoueur, 0.15)
+        #Rotation image joueur
+        angle = angleactuellejoueur +90
 
         #Deplacement X
         joueur_rect.x += kx
@@ -231,32 +238,52 @@ def lancer(ecran):
         camera_x = (LARGEUR//2)-joueur_rect.centerx
         camera_y = (HAUTEUR//2)-joueur_rect.centery
 
-        #Dessin map
+        #Dessin sol
         ecran.fill((0,0,0))
         for y in range(HAUTEURMAP):
             for x in range(LARGEURMAP):
                 case = carte[y][x]
-                if case == VIDE:
-                    continue
                 screen_x = x * ZOOM + camera_x
                 screen_y= y*ZOOM+camera_y
-                if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
-                    if case == SOL and img_sol is not None:
+                #Dessine que ce qui est visible
+                if case == SOL and img_sol is not None:
+                    if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
                         ecran.blit(img_sol, (screen_x,screen_y))
-                    elif case == MUR:
-                        if y+1<HAUTEURMAP and carte[y+1][x] == SOL:
-                            if img_murface:
-                                ecran.blit(img_murface,(screen_x,screen_y))
-                        else:
-                            if img_murtop:
-                                ecran.blit(img_murtop, (screen_x,screen_y))
+        
+        #Liste de chosses a dessiner apres le sol
+        adessiner = []
+
+        #Dessin murs
+        for y in range(HAUTEURMAP):
+            for x in range(LARGEURMAP):
+                case = carte[y][x]
+                if case == MUR:
+                    screen_x = x * ZOOM + camera_x
+                    screen_y= y*ZOOM+camera_y
+                    if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y< HAUTEUR:
+                        img = img_murtop
+                        #On regarsde si il y a du sol en dessous
+                        if y+1<HAUTEURMAP and carte[y+1][x]==SOL:
+                            img = img_murface
+                        if img:
+                            pos_y = screen_y + ZOOM
+                            adessiner.append((pos_y, img,(screen_x,screen_y)))
 
         #Dessin joueur
         img_joueur = animationjoueur[animation]
         if img_joueur is not None:
             joueurtourne = pygame.transform.rotate(img_joueur, angle)
-            recttourne = joueurtourne.get_rect(center=(LARGEUR//2,HAUTEUR//2))
-            ecran.blit(joueurtourne, recttourne.topleft)
+            rectaffiche = joueurtourne.get_rect()
+            xjoueur = joueur_rect.centerx + camera_x
+            yjoueur = joueur_rect.centery + camera_y
+            rectaffiche.center = (xjoueur, yjoueur)
+            pos_y= rectaffiche.bottom
+            adessiner.append((pos_y, joueurtourne, rectaffiche.topleft))
+
+        #Tri la liste a dessiner par ordre Y
+        adessiner.sort(key=lambda x: x[0])
+        for i in adessiner:
+            ecran.blit(i[1], i[2]) #image, position
 
         #Effet Lumiere quand activé
         if lumiereallume:

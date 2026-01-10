@@ -89,6 +89,10 @@ def option_menu(fenetre, largeur, hauteur):
     L,H = fenetre.get_size()
     pleinecran = (fenetre.get_flags() & pygame.FULLSCREEN) != 0
 
+    #Charge image de fond
+    imgori = pygame.image.load("ressource/option.png").convert()
+    imgfond = pygame.transform.scale(imgori, (L, H))
+
     #Créer les boutons
     #Bouton plein écran
     btn_pleinecran = Button("MODE: FENETRE", L//2-150,150,300,50)
@@ -123,13 +127,11 @@ def option_menu(fenetre, largeur, hauteur):
         if event.type == pygame.VIDEORESIZE:
             L,H = event.w, event.h
             fenetre = pygame.display.set_mode((L,H), pygame.RESIZABLE)
+            imgfond = pygame.transform.scale(imgori, (L, H))
             #Recentrage des boutons
             btn_pleinecran.rect.x = (L//2-150)
             btn_resolution.rect.x = (L//2-150)
-            volume_barre.rect.x = (L//2-150)
-            volume_barre.rect.y = 350
-            #Position de la boule
-            volume_barre.cerclex = volume_barre.rect.x + (volume_barre.rect.width * volume_barre.volume)
+            volume_barre.repositionner((L//2-150), 350)
             btn_retour.rect.y = H-100
             btn_resolution.text = f"RESOLUTION: {L}x{H}"
 
@@ -146,6 +148,7 @@ def option_menu(fenetre, largeur, hauteur):
                 fenetre = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
                 btn_pleinecran.text = "MODE: FENETRE"
             L,H = fenetre.get_size()
+            imgfond = pygame.transform.scale(imgori, (L, H))
             #Recentrage des boutons
             btn_pleinecran.rect.x = (L//2-150)
             btn_resolution.rect.x = (L//2-150)
@@ -162,6 +165,7 @@ def option_menu(fenetre, largeur, hauteur):
                 fenetre = pygame.display.set_mode(new_res, pygame.RESIZABLE)
                 L,H = new_res
                 btn_resolution.text = f"RESOLUTION: {L}x{H}"
+                imgfond = pygame.transform.scale(imgori, (L, H))
                 #Recentrage des boutons
                 btn_pleinecran.rect.x = (L//2-150)
                 btn_resolution.rect.x = (L//2-150)
@@ -177,7 +181,7 @@ def option_menu(fenetre, largeur, hauteur):
         if btn_retour.is_clicked(pos, clique):
             running = False
 
-        fenetre.fill((30, 30, 30)) #Fond sombre
+        fenetre.blit(imgfond, (0, 0))
         #Affiche le mot "Options"
         titre = fonttitle.render("OPTIONS", True, WHITE)
         fenetre.blit(titre, (L//2 - titre.get_width()//2, 50))

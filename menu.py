@@ -18,7 +18,7 @@ pygame.mixer.music.load("ressource/Musique.mp3")
 pygame.mixer.music.play(-1) #Musique en boucle
 
 #image de fond
-backgroundori = pygame.image.load("ressource/images.jpg")
+backgroundori = pygame.image.load("ressource/images.png").convert()
 background = pygame.transform.scale(backgroundori, (WIDTH, HEIGHT)) 
 
 #Couleur
@@ -35,7 +35,7 @@ GOLD_TRANSPARENT = (255, 215, 0, 100)
 
 #Police
 try:
-    FONT_TITLE = pygame.font.Font("ressource/titre.ttf", 72)
+    FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", 80)
     FONT_BUTTON = pygame.font.Font("ressource/police.ttf", 28)
 
 except:
@@ -132,10 +132,20 @@ while running:
     mouse_pos = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()
 
-    title = FONT_TITLE.render("FarLand Venture", True, WHITE)
-    shadow = FONT_TITLE.render("FarLand Venture", True, SHADOW)
-    fenetre.blit(shadow, (WIDTH//2 - title.get_width()//2 + 3, 103))
-    fenetre.blit(title, (WIDTH//2 - title.get_width()//2, 100))
+    title1 = FONT_TITLE.render("FarLand", True, WHITE)
+    shadow1= FONT_TITLE.render("FarLand", True, SHADOW)
+    title2 = FONT_TITLE.render("Venture", True, WHITE)
+    shadow2 = FONT_TITLE.render("Venture", True, SHADOW)
+    #Coordonnées du titre1
+    x1 = WIDTH- title1.get_width()- 300
+    y1= 400
+    #Coordonnées du titre2
+    x2 = WIDTH - title2.get_width() - 300
+    y2 = y1 + title1.get_height() +10
+    fenetre.blit(shadow1, (x1 + 3, y1 + 3))
+    fenetre.blit(title1, (x1, y1))
+    fenetre.blit(shadow2, (x2 + 3, y2 + 3))
+    fenetre.blit(title2, (x2, y2))
 
     for button in buttons:
         button.draw(fenetre, mouse_pos)
