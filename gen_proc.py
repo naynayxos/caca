@@ -137,6 +137,9 @@ def obstacle(rect_joueur,grille):
     return obstacle
 
 def lancer(ecran):
+    
+    pygame.mixer.music.load("ressource/explo.mp3")
+    pygame.mixer.music.play(-1)
 
     #Chargement assets
     img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))

@@ -192,7 +192,7 @@ def option_menu(fenetre, largeur, hauteur):
             btn_resolution.draw(fenetre, fonttext)
         else:
             #En plein ecran on met Resolution désactivée
-            txtpleinecran= fonttext.render("RESOLUTION ESACTIVE", True, (100,100,100))
+            txtpleinecran= fonttext.render("RESOLUTION DESACTIVE", True, (100,100,100))
             fenetre.blit(txtpleinecran, (L//2 - txtpleinecran.get_width()//2, 230))
 
         #Dessine la barre de volume
