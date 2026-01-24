@@ -5,9 +5,9 @@ import time
 pygame.init()
 
 # Fenêtre
-WIDTH = 1920
-HEIGHT = 1080
-fenetre = pygame.display.set_mode((WIDTH, HEIGHT))
+fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+WIDTH, HEIGHT = fenetre.get_size()
+
 pygame.display.set_caption("D-RED")
 
 # Couleurs

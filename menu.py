@@ -6,10 +6,10 @@ import option
 
 pygame.init()
 
+fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+
 #Fénétre jeu
-WIDTH = 1920
-HEIGHT = 1080
-fenetre = pygame.display.set_mode((WIDTH, HEIGHT))
+WIDTH, HEIGHT = fenetre.get_size()
 pygame.display.set_caption("FarLand Venture")
 pygame.display.set_icon(pygame.image.load("ressource/logo.png"))
 
@@ -88,20 +88,13 @@ class Button:
 
     def is_clicked(self, mouse_pos, mouse_pressed):
         return self.rect.collidepoint(mouse_pos) and mouse_pressed[0] #Clic gauche
-
-#Position des boutons
-button_y = HEIGHT - 120
-button_spacing = 60
-button_width = 380
-tot_width = (button_width * 4) + (button_spacing*3)
-button_x = (WIDTH - tot_width) // 2
     
 #Les boutons
 buttons = [
-    Button("Nouvelle Partie", button_x, button_y,"new"),
-    Button("Charger Partie", button_x + button_width + button_spacing, button_y, "load"),
-    Button("Options", button_x + (button_width + button_spacing) * 2, button_y, "options"),
-    Button("Quitter", button_x + (button_width + button_spacing) * 3, button_y, "quit")
+    Button("Nouvelle Partie", 0,0,"new"),
+    Button("Charger Partie", 0,0, "load"),
+    Button("Options", 0,0, "options"),
+    Button("Quitter", 0,0, "quit")
 ]
 
 #Recalcul de la resolution après le menu des options
@@ -113,12 +106,14 @@ def update_resolution(L, H):
     btnespace = 30
     btnL=280
     btnH=50
-    totalL = (btnL * 4) + (btnespace * 3)
-    startX = (L - totalL) // 2
-    pos_y = H - 100
+    borddroit = 150
+    bordhaut = 290
+    startX = (L - btnL - borddroit)
     #Met à jour la position des boutons
     for i, button in enumerate(buttons):
-        button.rect.topleft = (startX + i * (btnL + btnespace), pos_y)
+        start_y = bordhaut+i*(btnH+btnespace)
+        button.rect.topleft = (startX,start_y)
+
 #On l'appelle une première fois pour initialiser les positions
 update_resolution(WIDTH, HEIGHT)
 
@@ -136,12 +131,16 @@ while running:
     shadow1= FONT_TITLE.render("FarLand", True, SHADOW)
     title2 = FONT_TITLE.render("Venture", True, WHITE)
     shadow2 = FONT_TITLE.render("Venture", True, SHADOW)
+
+    margedroittitre = 100
+    margehauttitre = 90
     #Coordonnées du titre1
-    x1 = WIDTH- title1.get_width()- 300
-    y1= 400
+    x1 = WIDTH - title1.get_width() - margedroittitre
+    y1= margehauttitre
     #Coordonnées du titre2
-    x2 = WIDTH - title2.get_width() - 300
-    y2 = y1 + title1.get_height() +10
+    x2 = WIDTH- title2.get_width() - margedroittitre
+    y2 = y1 + title1.get_height() -15
+
     fenetre.blit(shadow1, (x1 + 3, y1 + 3))
     fenetre.blit(title1, (x1, y1))
     fenetre.blit(shadow2, (x2 + 3, y2 + 3))
@@ -153,12 +152,13 @@ while running:
             pygame.time.delay(200)
             if button.action == "new":
                 print("Nouvelle Partie")
-                pygame.mixer.music.fadeout(1000)
+                pygame.mixer.music.fadeout(500)
+                pygame.time.delay(500)
                 gen_proc.lancer(fenetre)
-                try:
-                    pygame.mixer.music.play(-1)
-                except:
-                    pass
+                print("Retour au menu")
+                pygame.event.clear()
+                pygame.mixer.music.load("ressource/Musique.mp3")
+                pygame.mixer.music.play(-1)
             elif button.action == "load":
                 print("Charger Partie")
             elif button.action == "options":

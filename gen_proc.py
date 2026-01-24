@@ -3,9 +3,8 @@ import sys
 import os
 import random
 import math
+import option
 
-LARGEUR = 1920
-HAUTEUR = 1080
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
 VITESSEJOUEUR = 10
@@ -15,7 +14,8 @@ SOL = 0
 NUIT = (15,15,25)
 
 pygame.init()
-ecran = pygame.display.set_mode((LARGEUR,HAUTEUR))
+
+ecran = pygame.display.Info()
 pygame.display.set_caption("D-RED")
 clock = pygame.time.Clock()
 
@@ -137,7 +137,8 @@ def obstacle(rect_joueur,grille):
     return obstacle
 
 def lancer(ecran):
-    
+    LARGEUR, HAUTEUR = ecran.get_size()
+    clock = pygame.time.Clock()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
 
@@ -176,6 +177,12 @@ def lancer(ecran):
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.mixer.music.pause()
+                    ecran= option.option_menu(ecran, LARGEUR, HAUTEUR)
+                    LARGEUR,HAUTEUR = ecran.get_size()
+                    pygame.event.clear()
+                    pygame.mixer.music.unpause()
                 if event.key == pygame.K_h:
                     lumiereallume = not lumiereallume
 

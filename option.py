@@ -123,17 +123,17 @@ def option_menu(fenetre, largeur, hauteur):
                 if event.button == 1:  # Clique gauche
                     clique = True
 
-        #Resize de l'écran
-        if event.type == pygame.VIDEORESIZE:
-            L,H = event.w, event.h
-            fenetre = pygame.display.set_mode((L,H), pygame.RESIZABLE)
-            imgfond = pygame.transform.scale(imgori, (L, H))
-            #Recentrage des boutons
-            btn_pleinecran.rect.x = (L//2-150)
-            btn_resolution.rect.x = (L//2-150)
-            volume_barre.repositionner((L//2-150), 350)
-            btn_retour.rect.y = H-100
-            btn_resolution.text = f"RESOLUTION: {L}x{H}"
+            #Resize de l'écran
+            if event.type == pygame.VIDEORESIZE:
+                L,H = event.w, event.h
+                fenetre = pygame.display.set_mode((L,H), pygame.RESIZABLE)
+                imgfond = pygame.transform.scale(imgori, (L, H))
+                #Recentrage des boutons
+                btn_pleinecran.rect.x = (L//2-150)
+                btn_resolution.rect.x = (L//2-150)
+                volume_barre.repositionner((L//2-150), 350)
+                btn_retour.rect.y = H-100
+                btn_resolution.text = f"RESOLUTION: {L}x{H}"
 
         #Bouton plein écran
         if btn_pleinecran.is_clicked(pos, clique):
@@ -154,6 +154,8 @@ def option_menu(fenetre, largeur, hauteur):
             btn_resolution.rect.x = (L//2-150)
             volume_barre.repositionner((L//2-150), 350)
             btn_retour.rect.y = H-100
+            if not pleinecran:
+                btn_resolution.text = f"RESOLUTION: {L}x{H}"
 
         #Bouton résolution
         if not pleinecran:
