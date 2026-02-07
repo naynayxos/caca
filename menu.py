@@ -43,15 +43,19 @@ except:
     FONT_BUTTON = pygame.font.SysFont(None, 36)
 
 class Button:
-    def __init__(self,text,center_x,center_y, action):
+    def __init__(self,text, action):
         self.text = text
         self.action = action
-        self.center_y = center_y
-        self.width = 280
-        self.height = 50
-        self.rect = pygame.Rect((0,0,self.width,self.height))
+        self.width = 0
+        self.height = 0
+        self.rect = pygame.Rect((0,0,0,0))
         self.led = 0
         self.dore = 0
+    
+    def update_pos(self, x, y, L, H):
+        self.width = L
+        self.height = H
+        self.rect = pygame.Rect(x, y, L, H)
     
     def draw(self, win, mouse_pos):
         is_hover = self.rect.collidepoint(mouse_pos)
@@ -91,28 +95,34 @@ class Button:
     
 #Les boutons
 buttons = [
-    Button("Nouvelle Partie", 0,0,"new"),
-    Button("Charger Partie", 0,0, "load"),
-    Button("Options", 0,0, "options"),
-    Button("Quitter", 0,0, "quit")
+    Button("Nouvelle Partie","new"),
+    Button("Charger Partie", "load"),
+    Button("Options", "options"),
+    Button("Quitter", "quit")
 ]
 
 #Recalcul de la resolution après le menu des options
 def update_resolution(L, H):
-    global background
+    global background, FONT_TITLE, FONT_BUTTON, WIDTH, HEIGHT
+    WIDTH,HEIGHT = L,H
     #Redimensionner l'image de fond
     background = pygame.transform.scale(backgroundori, (L, H))
+    #Taille police 
+    tailletitre = int(80*H/1080)
+    taillebutoon=int(28*H/1080)
+    FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", tailletitre)
+    FONT_BUTTON = pygame.font.Font("ressource/police.ttf", taillebutoon)
     #Repositionner les boutons
-    btnespace = 30
-    btnL=280
-    btnH=50
-    borddroit = 150
-    bordhaut = 290
-    startX = (L - btnL - borddroit)
+    btnespace = (int(H*0.03))
+    #Largeur et hauteur des boutons en fonction de la résolution
+    btnL=(int(L*0.15))
+    btnH=(int(H*0.05))
+    startX = (int(L*0.75))-(btnL//2)
+    startY= (int(H*0.40))
     #Met à jour la position des boutons
     for i, button in enumerate(buttons):
-        start_y = bordhaut+i*(btnH+btnespace)
-        button.rect.topleft = (startX,start_y)
+        posy = startY+i*(btnH+btnespace)
+        button.update_pos(startX, posy, btnL, btnH)
 
 #On l'appelle une première fois pour initialiser les positions
 update_resolution(WIDTH, HEIGHT)
@@ -132,14 +142,12 @@ while running:
     title2 = FONT_TITLE.render("Venture", True, WHITE)
     shadow2 = FONT_TITLE.render("Venture", True, SHADOW)
 
-    margedroittitre = 100
-    margehauttitre = 90
     #Coordonnées du titre1
-    x1 = WIDTH - title1.get_width() - margedroittitre
-    y1= margehauttitre
+    x1 = (int(WIDTH*0.75)) - (title1.get_width()//2)
+    y1= (int(HEIGHT*0.20))
     #Coordonnées du titre2
-    x2 = WIDTH- title2.get_width() - margedroittitre
-    y2 = y1 + title1.get_height() -15
+    y2 = y1+ title1.get_height() - 10
+    x2 = (int(WIDTH*0.75)) - (title2.get_width()//2)
 
     fenetre.blit(shadow1, (x1 + 3, y1 + 3))
     fenetre.blit(title1, (x1, y1))
@@ -153,10 +161,11 @@ while running:
             if button.action == "new":
                 print("Nouvelle Partie")
                 pygame.mixer.music.fadeout(500)
-                pygame.time.delay(500)
                 gen_proc.lancer(fenetre)
                 print("Retour au menu")
                 pygame.event.clear()
+                WIDTH, HEIGHT = fenetre.get_size()
+                update_resolution(WIDTH, HEIGHT)
                 pygame.mixer.music.load("ressource/Musique.mp3")
                 pygame.mixer.music.play(-1)
             elif button.action == "load":
