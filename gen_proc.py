@@ -5,6 +5,7 @@ import random
 import math
 import option
 import ascenseur
+import filtre
 
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
@@ -262,6 +263,7 @@ def lancer(ecran):
 
         click = False
         for event in pygame.event.get():
+            filtre.activation_mc(event)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -454,6 +456,6 @@ def lancer(ecran):
                     joueur_rect.center = (joueurx, joueury)
                     ouvertemenu = False
                     pygame.event.clear()
-
+        filtre.filtre(ecran)
         pygame.display.flip()
         clock.tick(60)
