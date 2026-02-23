@@ -1,6 +1,7 @@
 import pygame
 import sys
 import subprocess
+import webbrowser
 import gen_proc
 import option
 
@@ -20,6 +21,9 @@ pygame.mixer.music.play(-1) #Musique en boucle
 #image de fond
 backgroundori = pygame.image.load("ressource/images.png").convert()
 background = pygame.transform.scale(backgroundori, (WIDTH, HEIGHT)) 
+imgsite = pygame.image.load("ressource/site.png").convert_alpha()
+img_site = pygame.transform.scale(imgsite, (100, 100))
+rect_site = img_site.get_rect()
 
 #Couleur
 WHITE = (255,255,255)
@@ -96,14 +100,16 @@ class Button:
 #Les boutons
 buttons = [
     Button("Nouvelle Partie","new"),
+    Button("Heberger Partie", "hote"),
     Button("Charger Partie", "load"),
+    Button("Rejoindre Partie", "rejoindre"),
     Button("Options", "options"),
     Button("Quitter", "quit")
 ]
 
 #Recalcul de la resolution après le menu des options
 def update_resolution(L, H):
-    global background, FONT_TITLE, FONT_BUTTON, WIDTH, HEIGHT
+    global background, FONT_TITLE, FONT_BUTTON, WIDTH, HEIGHT, rect_site
     WIDTH,HEIGHT = L,H
     #Redimensionner l'image de fond
     background = pygame.transform.scale(backgroundori, (L, H))
@@ -112,13 +118,15 @@ def update_resolution(L, H):
     taillebutoon=int(28*H/1080)
     FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", tailletitre)
     FONT_BUTTON = pygame.font.Font("ressource/police.ttf", taillebutoon)
+    #Redimensionner l'image du site
+    rect_site = img_site.get_rect(bottomright=(L-30, H-30))
     #Repositionner les boutons
-    btnespace = (int(H*0.03))
+    btnespace = (int(H*0.02))
     #Largeur et hauteur des boutons en fonction de la résolution
-    btnL=(int(L*0.15))
-    btnH=(int(H*0.05))
+    btnL=(int(L*0.20))
+    btnH=(int(H*0.06))
     startX = (int(L*0.75))-(btnL//2)
-    startY= (int(H*0.40))
+    startY= (int(H*0.30))
     #Met à jour la position des boutons
     for i, button in enumerate(buttons):
         posy = startY+i*(btnH+btnespace)
@@ -126,6 +134,34 @@ def update_resolution(L, H):
 
 #On l'appelle une première fois pour initialiser les positions
 update_resolution(WIDTH, HEIGHT)
+
+def demander_ip(fenetre):
+    police = pygame.font.Font("ressource/police.ttf", 28)
+    input_rect = pygame.Rect(0,0,200,32)
+    input_rect.center = (fenetre.get_width()//2, fenetre.get_height()//2)
+    user = ''
+    active = True
+    while active:
+        fenetre.fill((30,30,30))
+        #Fenetre de saisie
+        titre = police.render("Entrez l'IP de l'hôte :", True, WHITE)
+        fenetre.blit(titre, (fenetre.get_width()//2 - 200, fenetre.get_height()//2 - 50))
+        #Affichage du texte saisi
+        txt_surface = police.render(user, True, WHITE)
+        fenetre.blit(txt_surface, (input_rect.x+5, input_rect.y+5))
+        pygame.draw.rect(fenetre, WHITE, input_rect, 2)
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return user
+                elif event.key == pygame.K_BACKSPACE:
+                    user = user[:-1]
+                else:
+                    user += event.unicode
+    return None
 
 running = True
 clock = pygame.time.Clock()
@@ -154,6 +190,13 @@ while running:
     fenetre.blit(shadow2, (x2 + 3, y2 + 3))
     fenetre.blit(title2, (x2, y2))
 
+    fenetre.blit(img_site, rect_site)
+
+    #Ouvrir le site web en cliquant sur l'image du site
+    if rect_site.collidepoint(mouse_pos) and mouse_pressed[0]:
+        pygame.time.delay(200)  # eviter les clics multiples
+        webbrowser.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
     for button in buttons:
         button.draw(fenetre, mouse_pos)
         if button.is_clicked(mouse_pos, mouse_pressed):
@@ -161,13 +204,28 @@ while running:
             if button.action == "new":
                 print("Nouvelle Partie")
                 pygame.mixer.music.fadeout(500)
-                gen_proc.lancer(fenetre)
+                #Mode Hote
+                gen_proc.lancer(fenetre, mode = "solo")
                 print("Retour au menu")
                 pygame.event.clear()
+                fenetre = pygame.display.get_surface()
                 WIDTH, HEIGHT = fenetre.get_size()
                 update_resolution(WIDTH, HEIGHT)
                 pygame.mixer.music.load("ressource/Musique.mp3")
                 pygame.mixer.music.play(-1)
+            elif button.action == "hote":
+                print("Lancement du serveur")
+                pygame.mixer.music.fadeout(500)
+                gen_proc.lancer(fenetre, mode = "hote")
+                print("Retour au menu")
+                pygame.event.clear()
+                fenetre = pygame.display.get_surface()
+                WIDTH, HEIGHT = fenetre.get_size()
+                update_resolution(WIDTH, HEIGHT)
+                try:
+                    pygame.mixer.music.load("ressource/Musique.mp3")
+                    pygame.mixer.music.play(-1)
+                except: pass
             elif button.action == "load":
                 print("Charger Partie")
             elif button.action == "options":
@@ -180,6 +238,21 @@ while running:
                 #Pour eviter missvkivk entre retour et nouvelle partie
                 pygame.event.clear()
                 pygame.time.delay(300)
+            elif button.action == "rejoindre":
+                print("Rejoindre")
+                ip = demander_ip(fenetre)
+                if ip:
+                    pygame.mixer.music.fadeout(500)
+                    gen_proc.lancer(fenetre, mode = "client", ip=ip)
+                    print("Retour au menu")
+                    pygame.event.clear()
+                    fenetre = pygame.display.get_surface()
+                    WIDTH, HEIGHT = fenetre.get_size()
+                    update_resolution(WIDTH, HEIGHT)
+                    try:
+                        pygame.mixer.music.load("ressource/Musique.mp3")
+                        pygame.mixer.music.play(-1)
+                    except: pass
             elif button.action == "quit":
                 running = False
     

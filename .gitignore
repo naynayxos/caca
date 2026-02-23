@@ -1,34 +1,21 @@
-# Dependencies
-node_modules/
 __pycache__/
-*.pyc
-venv/
-env/
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-# Build output
-dist/
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
-*.o
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Environment variables
-.env
-.env.local
-
-# Temporary files
-*.tmp
-.cache/

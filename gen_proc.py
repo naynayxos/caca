@@ -5,6 +5,9 @@ import random
 import math
 import option
 import ascenseur
+import pause
+import socket
+import pickle
 
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
@@ -198,17 +201,84 @@ def obstacle(rect_joueur,grille):
                     obstacle.append(rect_mur)
     return obstacle
 
-def lancer(ecran):
+def lancer(ecran, mode = "solo", ip=None):
     LARGEUR, HAUTEUR = ecran.get_size()
     clock = pygame.time.Clock()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
 
+    #Reseaux
+    socket_jeu = None
+    joueursup = pygame.Rect(0,0,40,40)
+    connect = False
+    if mode != "solo":
+        socket_jeu = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if mode == "hote":
+            print("Mode Hote: en attente de joueur...")
+            #Ecran d'attente
+            ecran.fill((0,0,0))
+            font = pygame.font.SysFont("ressource/police.ttf", 36)
+            text = font.render("En attente de joueur...", True, (255,255,255))
+            ecran.blit(text, (LARGEUR//2 - 150, HAUTEUR//2))
+            pygame.display.flip()
+            #Configurer le serveur
+            try:
+                socket_jeu.bind(('0.0.0.0', 5555))
+                socket_jeu.listen(1)
+                conn, addr = socket_jeu.accept()
+                socket_jeu = conn
+                connect = True
+                print(f"Joueur connecté depuis {addr}")
+
+                #L'hote genere la carte
+                carte, salles, pos = generemap()
+                #Envoie la carte au client
+                data = pickle.dumps({"carte": carte, "salles": salles, "pos": pos})
+                tailledata = len(data).to_bytes(4, byteorder='big')
+                socket_jeu.sendall(tailledata + data)
+                objets = generer_objets(carte, salles)
+            except Exception as e:
+                print(f"Erreur de reseau hote: {e}")
+                return
+        elif mode == "client":
+            print(f"Mode Client: connexion au serveur {ip}...")
+            try:
+                socket_jeu.connect((ip, 5555))
+                connect = True
+                print("Connecté au serveur")
+                #Reçoit la carte de l'hote
+                taillerecu = socket_jeu.recv(4)
+                tailledata = int.from_bytes(taillerecu, byteorder='big')
+                #Reçoit les données de la carte
+                paquets = []
+                recu = 0
+                while recu < tailledata:
+                    paquet = socket_jeu.recv(min(4096, tailledata - recu))
+                    if not paquet:
+                        raise Exception("Connexion perdue")
+                    paquets.append(paquet)
+                    recu += len(paquet)
+                data = b''.join(paquets)
+                donneesmap = pickle.loads(data)
+                carte = donneesmap["carte"]
+                salles = donneesmap["salles"]
+                pos = donneesmap["pos"]
+                objets = generer_objets(carte, salles)
+            except Exception as e:
+                print(f"Erreur de reseau client: {e}")
+                return
+        socket_jeu.setblocking(False)
+    else:
+        #Partie solo
+        carte, salles, pos = generemap()
+        objets = generer_objets(carte, salles)
+
     #Chargement assets
     img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))
+    img_ascenseur = texture("ascenseur.png",(ZOOM+1,ZOOM+1))
     img_murface = texture("murface.png", (ZOOM+1, ZOOM+1))
     img_murtop = texture("murtop.png", (ZOOM+1, ZOOM+1))
-    img = texture("chargement.png", (LARGEUR, HAUTEUR))
+    img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
     animationjoueur = [
     texture("joueur.png",(100,100), transparente=True),
     texture("joueurgauche.png",(100,100), transparente=True),
@@ -218,6 +288,11 @@ def lancer(ecran):
 
     #Ascenseur
     menu = ascenseur.Ascenseur(LARGEUR, HAUTEUR)
+
+    #Menu pause
+    menupause = pause.EcranPause(LARGEUR, HAUTEUR)
+    enpause = False
+
     #Dictionnaire pour sauvegarder les etages déjà visités
     sauvegarde_etage =  {}
     niveau_actuel = 1
@@ -231,6 +306,7 @@ def lancer(ecran):
     #hitbox
     joueur_rect = pygame.Rect(0,0,40,40)
     joueur_rect.center = (joueurx, joueury)
+    joueursup.center = (joueurx, joueury)
 
     lumiereallume = False
     angle = 0
@@ -248,6 +324,7 @@ def lancer(ecran):
     font = pygame.font.Font("ressource/police.ttf", 24)
     running = True
     while running:
+        LARGEUR, HAUTEUR = ecran.get_size()
         #Vérifie si le joueur est sur un ascenseur
         casex = int(joueur_rect.centerx/ZOOM)
         casey = int(joueur_rect.centery/ZOOM)
@@ -269,7 +346,10 @@ def lancer(ecran):
                 if event.key == pygame.K_h:
                     lumiereallume = not lumiereallume
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    if ouvertemenu:
+                        ouvertemenu = False
+                    else:
+                        enpause = not enpause
                 if event.key == pygame.K_e and surascenceur:
                     ouvertemenu = not ouvertemenu
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -277,7 +357,7 @@ def lancer(ecran):
                     click = True
         #Commande
         kx, ky = 0,0
-        if not ouvertemenu:
+        if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_LEFT] or keys[pygame.K_q]:
@@ -342,6 +422,31 @@ def lancer(ecran):
                         joueur_rect.bottom = mur.top
                     if ky <0:
                         joueur_rect.top = mur.bottom
+        
+        #Reseaux
+        if connect:
+            try:
+                #Envoie la position du joueur
+                message = pickle.dumps([joueur_rect.centerx, joueur_rect.centery])
+                socket_jeu.send(message)
+            except BlockingIOError: pass
+            except Exception as e: pass
+            #Reçoit la position de l'autre joueur
+            try:
+                data = socket_jeu.recv(4096)
+                if data:
+                    try:
+                        pos_autre = pickle.loads(data)
+                        valid = False
+                        if isinstance(pos_autre, (list,tuple)) and len(pos_autre) == 2:
+                            if isinstance(pos_autre[0], int) and isinstance(pos_autre[1], int):
+                                valid = True
+                        if valid:
+                            joueursup.centerx, joueursup.centery = pos_autre
+                    except Exception as e:
+                        pass
+            except BlockingIOError: pass
+            except Exception: pass
 
         #Suivi joueur
         camera_x = (LARGEUR//2)-joueur_rect.centerx
@@ -355,9 +460,11 @@ def lancer(ecran):
                 screen_x = x * ZOOM + camera_x
                 screen_y= y*ZOOM+camera_y
                 #Dessine que ce qui est visible
-                if case == SOL and img_sol is not None:
-                    if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
+                if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
+                    if case == SOL and img_sol is not None:
                         ecran.blit(img_sol, (screen_x,screen_y))
+                    elif case == ASCENCEUR and img_ascenseur is not None:
+                        ecran.blit(img_ascenseur, (screen_x, screen_y))
         
         #Liste de chosses a dessiner apres le sol
         adessiner = []
@@ -370,13 +477,13 @@ def lancer(ecran):
                     screen_x = x * ZOOM + camera_x
                     screen_y= y*ZOOM+camera_y
                     if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y< HAUTEUR:
-                        img = img_murtop
+                        img_mur = img_murtop
                         #On regarsde si il y a du sol en dessous
-                        if y+1<HAUTEURMAP and carte[y+1][x]==SOL:
-                            img = img_murface
-                        if img:
+                        if y+1<HAUTEURMAP and (carte[y+1][x]==SOL or carte[y+1][x] == ASCENCEUR):
+                            img_mur = img_murface
+                        if img_mur:
                             pos_y = screen_y + ZOOM
-                            adessiner.append((pos_y, img,(screen_x,screen_y)))
+                            adessiner.append((pos_y, img_mur,(screen_x,screen_y)))
                         
         #Dessin objets
         for obj in objets:
@@ -385,6 +492,17 @@ def lancer(ecran):
             if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
                 pos_y = fenetre_y + obj.rect.height
                 adessiner.append((pos_y, obj.texture, (fenetre_x, fenetre_y)))
+
+        img_autrejoueur = animationjoueur[animation]
+            
+        #Dessin autre joueur
+        if connect:
+            xjoueur = joueursup.centerx + camera_x
+            yjoueur = joueursup.centery + camera_y
+            #On dessine que si il est visible
+            if -100<xjoueur<LARGEUR and -100<yjoueur<HAUTEUR:
+                rect_aff = img_autrejoueur.get_rect(center=(xjoueur, yjoueur))
+                adessiner.append((rect_aff.bottom, img_autrejoueur, rect_aff.topleft))
 
         #Dessin joueur
         img_joueur = animationjoueur[animation]
@@ -437,7 +555,7 @@ def lancer(ecran):
                         "salles": salles,
                         "objets": objets,
                     }
-                    menu.ecran_charge(ecran, img, etage_choisi)
+                    menu.ecran_charge(ecran, img_load, etage_choisi)
                     niveau_actuel = etage_choisi
                     #Si l'étage a déjà été visité, on charge la sauvegarde
                     if etage_choisi in sauvegarde_etage:
@@ -455,5 +573,35 @@ def lancer(ecran):
                     ouvertemenu = False
                     pygame.event.clear()
 
+        #Menu pause
+        if enpause:
+            boutons = menupause.dessiner(ecran)
+            if click:
+                mouse_pos = pygame.mouse.get_pos()
+                action = menupause.clique(mouse_pos, boutons)
+                if action == "REPRENDRE":
+                    enpause = False
+                elif action == "SAUVEGARDER":
+                    sauvegarde_etage[niveau_actuel] = {
+                        "carte": carte,
+                        "salles": salles,
+                        "objets": objets,
+                    }
+                    print("Partie sauvegardée")
+                elif action == "OPTIONS":
+                    ecran = option.option_menu(ecran, LARGEUR, HAUTEUR)
+                    LARGEUR, HAUTEUR = ecran.get_size()
+                    menupause.update_dimensions(LARGEUR, HAUTEUR)
+                    menu.update_dimensions(LARGEUR, HAUTEUR)
+                    img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
+                elif action == "MENU PRINCIPAL":
+                    return
+                elif action == "QUITTER":
+                    pygame.quit()
+                    sys.exit()
+
         pygame.display.flip()
         clock.tick(60)
+    
+    if socket_jeu:
+        socket_jeu.close()  
