@@ -8,6 +8,7 @@ import ascenseur
 import pause
 import socket
 import pickle
+import filtre
 
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
@@ -339,6 +340,7 @@ def lancer(ecran, mode = "solo", ip=None):
 
         click = False
         for event in pygame.event.get():
+            filtre.activation_mc(event)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -600,6 +602,7 @@ def lancer(ecran, mode = "solo", ip=None):
                     pygame.quit()
                     sys.exit()
 
+        filtre.filtre(ecran)
         pygame.display.flip()
         clock.tick(60)
     

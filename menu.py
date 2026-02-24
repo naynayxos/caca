@@ -123,10 +123,10 @@ def update_resolution(L, H):
     #Repositionner les boutons
     btnespace = (int(H*0.02))
     #Largeur et hauteur des boutons en fonction de la résolution
-    btnL=(int(L*0.20))
-    btnH=(int(H*0.06))
+    btnL=(int(L*0.19))
+    btnH=(int(H*0.05))
     startX = (int(L*0.75))-(btnL//2)
-    startY= (int(H*0.30))
+    startY= (int(H*0.38))
     #Met à jour la position des boutons
     for i, button in enumerate(buttons):
         posy = startY+i*(btnH+btnespace)
