@@ -2,7 +2,7 @@ import pygame
 import sys
 import subprocess
 import webbrowser
-import gen_proc
+import jeu
 import option
 
 pygame.init()
@@ -205,7 +205,7 @@ while running:
                 print("Nouvelle Partie")
                 pygame.mixer.music.fadeout(500)
                 #Mode Hote
-                gen_proc.lancer(fenetre, mode = "solo")
+                jeu.lancer(fenetre, mode = "solo")
                 print("Retour au menu")
                 pygame.event.clear()
                 fenetre = pygame.display.get_surface()
@@ -216,7 +216,7 @@ while running:
             elif button.action == "hote":
                 print("Lancement du serveur")
                 pygame.mixer.music.fadeout(500)
-                gen_proc.lancer(fenetre, mode = "hote")
+                jeu.lancer(fenetre, mode = "hote")
                 print("Retour au menu")
                 pygame.event.clear()
                 fenetre = pygame.display.get_surface()
@@ -243,7 +243,7 @@ while running:
                 ip = demander_ip(fenetre)
                 if ip:
                     pygame.mixer.music.fadeout(500)
-                    gen_proc.lancer(fenetre, mode = "client", ip=ip)
+                    jeu.lancer(fenetre, mode = "client", ip=ip)
                     print("Retour au menu")
                     pygame.event.clear()
                     fenetre = pygame.display.get_surface()

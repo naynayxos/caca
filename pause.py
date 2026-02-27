@@ -17,7 +17,6 @@ class EcranPause:
 
         #Definition boutons    
         self.buttons = [("REPRENDRE","Reprendre"),("OPTIONS","Options"),("SAUVEGARDER","Sauvegarder"),("MENU PRINCIPAL","Menu Principal"),("QUITTER","Quitter")]
-
         self.btnLargeur = 300
         self.btnHauteur = 60
         self.espacement = 20
