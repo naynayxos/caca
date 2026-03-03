@@ -51,11 +51,6 @@ def generer_objets(grille, salles):
                                     taillemun = (ZOOM//2, ZOOM//2)
                                 obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=taillemun)
                                 objets.append(obj)
-    #Carte acces ascenceur dans la derniere salle
-    dersalle = salles[-1]
-    dx, dy = dersalle.centerx, dersalle.centery
-    carte = Objet(dx*ZOOM+ZOOM//4, dy*ZOOM+ZOOM//4, "carte.png", "carte", size=(ZOOM//2, ZOOM//2))
-    objets.append(carte)
     return objets
 
 #couloir verticale
