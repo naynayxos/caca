@@ -25,7 +25,9 @@ def generer_objets(grille, salles):
     objets = []
     types = [{'nom': 'caisse.png', 'type': 'meuble', 'proba': 0.2},
             {'nom': 'plante.png', 'type': 'plante', 'proba': 0.2},
-            {'nom': 'meuble.png', 'type': 'meuble', 'proba': 0.2}]
+            {'nom': 'meuble.png', 'type': 'meuble', 'proba': 0.2},
+            {'nom': 'munition.png', 'type': 'munition', 'proba':0.1}]
+    
     for salle in salles:
         for y in range(salle.top, salle.bottom):
             for x in range(salle.left, salle.right):
@@ -43,8 +45,17 @@ def generer_objets(grille, salles):
                         if random.random() < 0.2: # 20% de chance un objet
                             t = random.choice(types)
                             if random.random() < t['proba']:
-                                obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=(ZOOM, ZOOM))
+                                if t['type'] != 'munition':
+                                    taillemun = (ZOOM, ZOOM)
+                                else:
+                                    taillemun = (ZOOM//2, ZOOM//2)
+                                obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=taillemun)
                                 objets.append(obj)
+    #Carte acces ascenceur dans la derniere salle
+    dersalle = salles[-1]
+    dx, dy = dersalle.centerx, dersalle.centery
+    carte = Objet(dx*ZOOM+ZOOM//4, dy*ZOOM+ZOOM//4, "carte.png", "carte", size=(ZOOM//2, ZOOM//2))
+    objets.append(carte)
     return objets
 
 #couloir verticale

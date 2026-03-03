@@ -11,6 +11,7 @@ from prerequis import *
 from prerequis import texture, lumiere
 from cartegen import generemap, generer_objets
 from joueur import Joueur
+from arme import Arme
 
 pygame.init()
 ecran = pygame.display.Info()
@@ -159,8 +160,34 @@ def lancer(ecran, mode = "solo", ip=None):
        
         if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
+            #Reanimation
+            if keys[pygame.K_e]:
+                joueur.rea = 1
+            else:
+                joueur.rea = 0
+            #Deplacement joueur
             kx, ky = joueur.deplacer(keys, len(animationjoueur))
             joueur.collision(kx, ky, carte, objets)
+            #Changement arme
+            if keys[pygame.K_1]:
+                joueur.changerarme(1)
+            if keys[pygame.K_2]:
+                joueur.changerarme(2)
+            if keys[pygame.K_3]:
+                joueur.changerarme(3)
+            #Ramasser munition
+            objetsreste = []
+            for obj in objets:
+                if obj.type == "munition" and joueur.rect.colliderect(obj.rect):
+                    joueur.munition = joueur.munition + 15
+                else:
+                    objetsreste.append(obj)
+            objets = objetsreste
+            #Tir
+            if keys[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]:
+                joueur.tirer()
+            #Deplacement balle
+            joueur.updatetir(carte, objets)
 
         #Reseaux
         if connect:
@@ -240,6 +267,13 @@ def lancer(ecran, mode = "solo", ip=None):
             if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
                 pos_y = fenetre_y + obj.rect.height
                 adessiner.append((pos_y, obj.texture, (fenetre_x, fenetre_y)))
+
+        #Dessin balles
+        for tir in joueur.tir:
+            ix = tir.rect.x + camera_x
+            iy = tir.rect.y + camera_y
+            if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
+                adessiner.append((iy+tir.rect.height, tir.image, (ix, iy)))
 
         img_autrejoueur = animationjoueur[joueur.animation]
             
@@ -352,6 +386,28 @@ def lancer(ecran, mode = "solo", ip=None):
                     pygame.quit()
                     sys.exit()
 
+        #Barre endurance
+        pygame.draw.rect(ecran, (50,50,50), (20, HAUTEUR-40, 200, 20))
+        largeurbarre = (joueur.endurance/joueur.maxcourse)*200
+        if largeurbarre>0:
+            if joueur.endurance > 20:
+                couleur = (0,200,0)
+            else:
+                couleur = (200,0,0)
+            pygame.draw.rect(ecran, couleur, (20, HAUTEUR-40, largeurbarre,20))
+        
+        #Compteur munition
+        if joueur.munition > 0:
+            textemun = font.render(f"Balles: {joueur.munition}", True, (255,255,255))
+        else:
+            textemun = font.render(f"Chargeur Vide !", True, (255,50,50))
+        ecran.blit(textemun,(20,HAUTEUR-80))
+
+        #Arme actuelle
+        noms = {1: "Pistolet", 2:"Fusil A Pompe", 3:"Fusil d'Assaut"}
+        textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
+        ecran.blit(textearme, (20, HAUTEUR-120))
+        
         filtre.filtre(ecran)
         pygame.display.flip()
         clock.tick(60)
