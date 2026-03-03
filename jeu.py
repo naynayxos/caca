@@ -6,6 +6,7 @@ import pause
 import socket
 import pickle
 import filtre
+import overlay
 
 from prerequis import *
 from prerequis import texture, lumiere
@@ -407,6 +408,8 @@ def lancer(ecran, mode = "solo", ip=None):
         noms = {1: "Pistolet", 2:"Fusil A Pompe", 3:"Fusil d'Assaut"}
         textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
         ecran.blit(textearme, (20, HAUTEUR-120))
+        #texte mode overlay
+        overlay.mode_texte(ecran, filtre.m_combat)
         
         filtre.filtre(ecran)
         pygame.display.flip()
