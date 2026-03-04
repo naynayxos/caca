@@ -410,7 +410,7 @@ def lancer(ecran, mode = "solo", ip=None):
         textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
         ecran.blit(textearme, (20, HAUTEUR-120))
         #texte mode overlay
-        overlay.mode_texte(ecran, filtre.m_combat, police, hudmode)
+        overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode)
         
         filtre.filtre(ecran)
         pygame.display.flip()

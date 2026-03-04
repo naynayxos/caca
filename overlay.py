@@ -6,9 +6,11 @@ def overlay_HUD():
     hudmode= pygame.image.load("ressource/HUD_mc_V2.png").convert_alpha()
     return police,hudmode
 #Mode HUD texte & élément;
-def mode_texte(fenetre, m_combat, police, hudmode):
+def mode_texte(fenetre, m_combat, enpause, police, hudmode):
     fenetre.blit(hudmode,(10,10))
-    if m_combat==True:
+    if enpause :
+        Texte = "PAUSE"
+    elif m_combat==True:
         Texte= "COMBAT"
     else:
         Texte="EXPLORATION"
