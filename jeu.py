@@ -20,6 +20,7 @@ pygame.display.set_caption("D-RED")
 
 def lancer(ecran, mode = "solo", ip=None):
     LARGEUR, HAUTEUR = ecran.get_size()
+    police, hudmode =overlay.overlay_HUD()
     clock = pygame.time.Clock()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
@@ -409,7 +410,7 @@ def lancer(ecran, mode = "solo", ip=None):
         textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
         ecran.blit(textearme, (20, HAUTEUR-120))
         #texte mode overlay
-        overlay.mode_texte(ecran, filtre.m_combat)
+        overlay.mode_texte(ecran, filtre.m_combat, police, hudmode)
         
         filtre.filtre(ecran)
         pygame.display.flip()
