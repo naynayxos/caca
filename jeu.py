@@ -20,7 +20,7 @@ pygame.display.set_caption("D-RED")
 
 def lancer(ecran, mode = "solo", ip=None):
     LARGEUR, HAUTEUR = ecran.get_size()
-    police, hudmode =overlay.overlay_HUD()
+    police, hudmode, hudinventaire, inventaire =overlay.overlay_HUD()
     clock = pygame.time.Clock()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
@@ -147,6 +147,8 @@ def lancer(ecran, mode = "solo", ip=None):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LCTRL and not enpause:
+                    inventaire= not inventaire
                 if event.key == pygame.K_h:
                     joueur.lumiereallumee = not joueur.lumiereallumee
                 if event.key == pygame.K_ESCAPE:
@@ -409,10 +411,14 @@ def lancer(ecran, mode = "solo", ip=None):
         noms = {1: "Pistolet", 2:"Fusil A Pompe", 3:"Fusil d'Assaut"}
         textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
         ecran.blit(textearme, (20, HAUTEUR-120))
+        #affichage de l'image de l'inventaire
+        if not enpause:
+            overlay.onventaire(ecran, inventaire, hudinventaire, LARGEUR, HAUTEUR)
         #texte mode overlay
-        overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode)
-        
-        filtre.filtre(ecran)
+        overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode, inventaire)
+        #activation du filtre
+        if not enpause:
+            filtre.filtre(ecran)
         pygame.display.flip()
         clock.tick(60)
     
