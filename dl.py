@@ -2,56 +2,42 @@ import pygame
 import sys
 import time
 
-pygame.init()
+def ecran_chargement(fenetre, WIDTH, HEIGHT):
+    # Couleurs
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    # Police
+    FONT_TITLE = pygame.font.Font("ressource/police.ttf", 70)   
+    
+    logo = pygame.image.load("ressource/Chargement.png").convert_alpha()
+    logo = pygame.transform.scale(logo, (WIDTH, HEIGHT))
 
-# Fenêtre
-fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
-WIDTH, HEIGHT = fenetre.get_size()
-
-pygame.display.set_caption("D-RED")
-
-# Couleurs
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GOLD = (255, 215, 0)
-GOLD_DARK = (200, 170, 0)
-GLASS_BASE = (255, 255, 255, 30)
-# Police
-try:
-    FONT_TITLE = pygame.font.Font("ressource/police.ttf", 70)
-    FONT_LOADING = pygame.font.Font("ressource/police.ttf", 30)
-except:
-    FONT_TITLE = pygame.font.SysFont(None, 100)
-    FONT_LOADING = pygame.font.SysFont(None, 30)
-
-logo = pygame.image.load("ressource/Chargement.png").convert_alpha()
-logo = pygame.transform.scale(logo, (WIDTH, HEIGHT))
-
-def ecran_chargement():
     clock = pygame.time.Clock()
     start_time = time.time()
-    duration = 2
+    duration = 1.5  # Durée
     
     while True:
         clock.tick(60)
-        elapsed = time.time() - start_time
-        progress = min(elapsed / duration, 1.0)
+        tamps = time.time() - start_time
+        progress = min(tamps/ duration, 1.0)
         
         if progress >= 1.0:
-            return
-
+            if logo is not None:
+                fenetre.blit(logo, (0,0))
+                title = FONT_TITLE.render("CHARGEMENT...", True, WHITE)
+                title_rect = title.get_rect(bottomright=(WIDTH - 50, HEIGHT - 50))
+                fenetre.blit(title, title_rect)
+                pygame.display.flip()
+                return
         fenetre.fill(BLACK)
-        fenetre.blit(logo, (0,0))
-        title_surf = FONT_TITLE.render("CHARGEMENT...", True, WHITE)
-        title_rect = title_surf.get_rect(bottomright=(WIDTH - 50, HEIGHT - 50))
-        fenetre.blit(title_surf, title_rect)
+        if logo is not None:
+            fenetre.blit(logo, (0,0))
+        title = FONT_TITLE.render("CHARGEMENT...", True, WHITE)
+        title_rect = title.get_rect(bottomright=(WIDTH - 50, HEIGHT - 50))
+        fenetre.blit(title, title_rect)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
         
         pygame.display.flip()
-
-ecran_chargement()
-
-import menu

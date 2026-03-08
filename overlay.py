@@ -1,5 +1,8 @@
 import pygame
 import filtre
+import random
+import joueur
+
 #intialisation des éléments;
 def overlay_HUD():
     police=pygame.font.Font("ressource/police.ttf", 40)
@@ -13,9 +16,6 @@ def onventaire(fenetre, inventaire, hudinventaire, LARGEUR, HAUTEUR):
         surf= hudinventaire.get_rect()
         surf.center=(LARGEUR//2,HAUTEUR//2)
         fenetre.blit(hudinventaire, surf)
-
-    
-
 
 #Mode HUD texte & élément;
 def mode_texte(fenetre, m_combat, enpause, police, hudmode, inventaire):
@@ -32,3 +32,73 @@ def mode_texte(fenetre, m_combat, enpause, police, hudmode, inventaire):
     surf_rec=surface.get_rect()
     surf_rec.center=(10+hudmode.get_width()//2, 10+hudmode.get_height()//2)
     fenetre.blit(surface, surf_rec)
+
+def munition(fenetre, joueur, police, img, HAUTEUR):
+    if joueur.munition > 0:
+        texte = police.render(f"x{joueur.munition}", True, (255,255,255))
+    else:
+        texte = police.render("x0", True, (230,10,10))
+    posx = 10
+    posy = HAUTEUR - 175
+    if img is not None:
+        fenetre.blit(img, (posx, posy))
+    fenetre.blit(texte, (posx + 75, posy+15))
+
+def endurance(fenetre, joueur, course, img, HAUTEUR, LARGEUR, fondu):
+    if fondu <= 0:
+        return
+    largeur = 200
+    hauteur = 20
+    #Position sur l'ecran
+    posecranx = LARGEUR - 250
+    posecrany = HAUTEUR - 80
+    barre = pygame.Surface((300, 60), pygame.SRCALPHA)
+    posx = 10
+    posy = 20
+
+    #Calcul largeur
+    largeurbarre = (joueur.endurance / joueur.maxcourse)*largeur
+    if largeurbarre < 0:
+        largeurbarre = 0
+    couleurfond = (40,40,45,fondu)
+    couleurbord = (200,200,200,fondu)
+    if joueur.endurance > 25:
+        couleur = (0,200,255, fondu)
+    else:
+        couleur = (255,50,50, fondu) 
+    
+    #Dessine barre avec fond et bordure
+    pygame.draw.rect(barre, couleurfond, (posx, posy, largeur, hauteur), border_radius=8)
+    if largeurbarre > 0:
+        pygame.draw.rect(barre, couleur, (posx, posy, largeurbarre, hauteur), border_radius=8)
+    pygame.draw.rect(barre, couleurbord, (posx, posy, largeur, hauteur), 2, border_radius=8)
+    
+    #Effet flamme quand course
+    if course and largeurbarre > 0:
+        for i in range(10): #10 etincelle
+            x = random.randint(0,25)
+            y = random.randint(-5, hauteur+5)
+            taille=random.randint(2,4)
+            couleurflamme = random.choice([(255,150,0),(255,200,0),(0,200,255),(255,255,255)])
+            cflamme = (couleurflamme[0],couleurflamme[1],couleurflamme[2],fondu)
+            #Dessine flamme en dessous de la barre
+            flammex = posx + largeurbarre + x - 10
+            flammey = posy + y
+            pygame.draw.circle(barre, couleurflamme, (int(flammex), int(flammey)), taille)
+    
+    #Le joueur invisible
+    if img is not None and largeurbarre > 0:
+        taillejoueur = 28
+        joueur = pygame.transform.scale(img, (taillejoueur, taillejoueur)).convert_alpha()
+        joueur.set_alpha(min(170, fondu)) #Transparent
+        joueurx = posx + largeurbarre - (taillejoueur//2)
+        joueury = posy + (hauteur//2) - (taillejoueur//2)
+        barre.blit(joueur, (joueurx, joueury))
+    fenetre.blit(barre, (posecranx, posecrany))
+
+def arme_overlay(fenetre, joueur, image, HAUTEUR, present):
+    posx = 10+present
+    posy = HAUTEUR - 95
+    imgarme = image.get(joueur.arsenal)
+    if imgarme is not None:
+        fenetre.blit(imgarme, (posx, posy))

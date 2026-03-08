@@ -100,6 +100,12 @@ def lancer(ecran, mode = "solo", ip=None):
     img_murface = texture("murface.png", (ZOOM+1, ZOOM+1))
     img_murtop = texture("murtop.png", (ZOOM+1, ZOOM+1))
     img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
+    img_munition = texture("munitionoverlay.png", (80,80), transparente=True)
+    img_arme = {
+        1: texture("pistolet.png",(250,80), transparente= True),
+        2: texture("pompe.png",(250,80), transparente= True),
+        3: texture("fusil.png",(250,80), transparente= True)
+    }
     animationjoueur = [
     texture("joueur.png",(100,100), transparente=True),
     texture("joueurgauche.png",(100,100), transparente=True),
@@ -125,6 +131,10 @@ def lancer(ecran, mode = "solo", ip=None):
     joueur = Joueur(px*ZOOM+(ZOOM//2), py*ZOOM+(ZOOM//2))
 
     font = pygame.font.Font("ressource/police.ttf", 24)
+    fondu = 255
+    #Detecte changement
+    armeprec = joueur.arsenal
+    glissement = 0
     running = True
     while running:
         LARGEUR, HAUTEUR = ecran.get_size()
@@ -390,35 +400,40 @@ def lancer(ecran, mode = "solo", ip=None):
                     pygame.quit()
                     sys.exit()
 
-        #Barre endurance
-        pygame.draw.rect(ecran, (50,50,50), (20, HAUTEUR-40, 200, 20))
-        largeurbarre = (joueur.endurance/joueur.maxcourse)*200
-        if largeurbarre>0:
-            if joueur.endurance > 20:
-                couleur = (0,200,0)
-            else:
-                couleur = (200,0,0)
-            pygame.draw.rect(ecran, couleur, (20, HAUTEUR-40, largeurbarre,20))
-        
-        #Compteur munition
-        if joueur.munition > 0:
-            textemun = font.render(f"Balles: {joueur.munition}", True, (255,255,255))
-        else:
-            textemun = font.render(f"Chargeur Vide !", True, (255,50,50))
-        ecran.blit(textemun,(20,HAUTEUR-80))
-
-        #Arme actuelle
-        noms = {1: "Pistolet", 2:"Fusil A Pompe", 3:"Fusil d'Assaut"}
-        textearme = font.render(f"Arme: {noms[joueur.arsenal]}", True, (200,200,255))
-        ecran.blit(textearme, (20, HAUTEUR-120))
-        #affichage de l'image de l'inventaire
         if not enpause:
+            #Barre endurance
+            #Il court ?
+            touche = pygame.key.get_pressed()
+            mouvement = touche[pygame.K_LEFT] or touche[pygame.K_RIGHT] or touche[pygame.K_UP] or touche[pygame.K_DOWN] or touche[pygame.K_z] or touche[pygame.K_s] or touche[pygame.K_q] or touche[pygame.K_d]
+            course = mouvement and touche[pygame.K_LSHIFT] and joueur.endurance > 0
+            if not course and joueur.endurance >= joueur.maxcourse:
+                fondu = max(0, fondu-5)
+            else:
+                fondu = min(255, fondu+25)                
+            joueurimage = animationjoueur[joueur.animation]
+            overlay.endurance(ecran, joueur, course, joueurimage, HAUTEUR, LARGEUR, fondu)
+        
+            #Compteur munition
+            overlay.munition(ecran, joueur, police, img_munition, HAUTEUR)
+
+            #Arme overlay
+            #Si changement d'arme on glisse image
+            if joueur.arsenal != armeprec:
+                armeprec = joueur.arsenal
+                glissement = -400
+            if glissement < 0:
+                glissement += 35
+                if glissement > 0:
+                    glissement = 0
+            overlay.arme_overlay(ecran, joueur, img_arme, HAUTEUR, glissement)
+            
+            #affichage de l'image de l'inventaire
             overlay.onventaire(ecran, inventaire, hudinventaire, LARGEUR, HAUTEUR)
+            #activation du filtre
+            filtre.filtre(ecran)
+
         #texte mode overlay
         overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode, inventaire)
-        #activation du filtre
-        if not enpause:
-            filtre.filtre(ecran)
         pygame.display.flip()
         clock.tick(60)
     

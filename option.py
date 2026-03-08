@@ -206,10 +206,10 @@ def option_menu(fenetre, largeur, hauteur):
         volume_barre.draw(fenetre)
 
         #Tableau de touche du jeu
-        tableau_touche = pygame.Rect(L//2 - 200, 450, 400, 240)
+        tableau_touche = pygame.Rect(L//2 - 200, 450, 400, 325)
         pygame.draw.rect(fenetre, (50,50,50), tableau_touche, border_radius=15)
         pygame.draw.rect(fenetre, GOLD, tableau_touche, 2, border_radius=15)
-        commande = ["COMMANDES DU JEU:","AVANCER: Z","RECULER: S","GAUCHE: Q","DROITE: D","PAUSE: ECHAP","LUMIERE: H"]
+        commande = ["COMMANDES DU JEU:","AVANCER: Z","RECULER: S","GAUCHE: Q","DROITE: D","PAUSE: ECHAP","LUMIERE: H","FILTRE: T", "ARME: 1,2,3","TIR: CLIQUE GAUCHE"]
         for i, ligne in enumerate(commande):
             #Titre en or le reste en blanc
             titre_couleur = GOLD if i == 0 else WHITE

@@ -4,6 +4,7 @@ import subprocess
 import webbrowser
 import jeu
 import option
+import dl
 
 pygame.init()
 
@@ -38,13 +39,8 @@ GOLD_BRILLANT = (218, 179, 10)
 GOLD_TRANSPARENT = (255, 215, 0, 100)
 
 #Police
-try:
-    FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", 80)
-    FONT_BUTTON = pygame.font.Font("ressource/police.ttf", 28)
-
-except:
-    FONT_TITLE = pygame.font.SysFont(None, 72)
-    FONT_BUTTON = pygame.font.SysFont(None, 36)
+FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", 80)
+FONT_BUTTON = pygame.font.Font("ressource/police.ttf", 28)
 
 class Button:
     def __init__(self,text, action):
@@ -204,6 +200,8 @@ while running:
             if button.action == "new":
                 print("Nouvelle Partie")
                 pygame.mixer.music.fadeout(500)
+                #Chagement
+                dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
                 #Mode Hote
                 jeu.lancer(fenetre, mode = "solo")
                 print("Retour au menu")
@@ -216,6 +214,9 @@ while running:
             elif button.action == "hote":
                 print("Lancement du serveur")
                 pygame.mixer.music.fadeout(500)
+                #Chargement
+                dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
+                #Mode Hote
                 jeu.lancer(fenetre, mode = "hote")
                 print("Retour au menu")
                 pygame.event.clear()
@@ -243,6 +244,9 @@ while running:
                 ip = demander_ip(fenetre)
                 if ip:
                     pygame.mixer.music.fadeout(500)
+                    #Chargement
+                    dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
+                    #Mode Client
                     jeu.lancer(fenetre, mode = "client", ip=ip)
                     print("Retour au menu")
                     pygame.event.clear()

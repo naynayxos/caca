@@ -6,6 +6,8 @@ NOIR_TRANSPARENT = (0, 0, 0, 180)
 GRIS_CLAIR = (200, 200, 200)
 GRIS_FONCE = (50, 50, 50)
 HOVER_COLOR = (100, 150, 200)
+VERT_FONCE = (20, 63, 24)
+
 
 class EcranPause:
     def __init__(self, largeur, hauteur):
@@ -31,24 +33,19 @@ class EcranPause:
         overlay.fill(NOIR_TRANSPARENT)
         fenetre.blit(overlay, (0, 0))
 
-        #Titre
-        titre_surf = self.font_titre.render("PAUSE", True, BLANC)
-        titre_rect = titre_surf.get_rect(center=(self.largeur // 2, self.hauteur // 4))
-        fenetre.blit(titre_surf, titre_rect)
-
         #Boutons
         mouse_pos = pygame.mouse.get_pos()
         rectbtn = []
         #Calcul position des boutons
-        total_height = len(self.buttons) * (self.btnHauteur + self.espacement)
-        start_y = (self.hauteur // 2) - (total_height // 4)
+        total_height = len(self.buttons) * self.btnHauteur + (len(self.buttons) - 1)*self.espacement
+        start_y = (self.hauteur - total_height)// 2
         for i, (key, text) in enumerate(self.buttons):
             x = (self.largeur - self.btnLargeur) // 2
             y = start_y + i * (self.btnHauteur + self.espacement)
             rect = pygame.Rect(x, y, self.btnLargeur, self.btnHauteur)
             #Couleur en survol
             if rect.collidepoint(mouse_pos):
-                couleur_fond = NOIR_TRANSPARENT
+                couleur_fond = VERT_FONCE
                 couleur_txt = BLANC
             else:
                 couleur_fond = GRIS_FONCE
