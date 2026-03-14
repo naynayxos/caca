@@ -83,8 +83,8 @@ class VolumeBar:
 #Boucle du menu option
 def option_menu(fenetre, largeur, hauteur):
     clock = pygame.time.Clock()
-    fonttitle = pygame.font.SysFont("ressource/titre.ttf", 60)
-    fonttext = pygame.font.SysFont("ressource/police.ttf", 30)
+    fonttitle = pygame.font.SysFont(None, 60)
+    fonttext = pygame.font.SysFont(None, 30)
 
     L,H = fenetre.get_size()
     pleinecran = (fenetre.get_flags() & pygame.FULLSCREEN) != 0
@@ -99,7 +99,7 @@ def option_menu(fenetre, largeur, hauteur):
     if pleinecran:
         btn_pleinecran.text = "MODE: PLEIN ECRAN"
     #Bouton Résolution
-    resolutions = [(1600,900),(1920,1080),(1920,1200),(2560,1440),(2560,1600),(3840,2160)]
+    resolutions = [(1280,720),(1600,900),(1920,1080),(1920,1200),(2560,1440),(2560,1600),(3840,2160)]
     index = 0 #Index de la résolution premiere
     #Trouve l'index de la résolution actuelle
     if (L,H) in resolutions:
@@ -107,27 +107,47 @@ def option_menu(fenetre, largeur, hauteur):
     btn_resolution = Button(f"RESOLUTION: {L}x{H}", 0,0,300,50)
     #Barre de volume
     volumeactuel = pygame.mixer.music.get_volume()
-    posboule = pow(volumeactuel, 1/3) if volumeactuel > 0 else 0
+    if volumeactuel > 0:
+        posboule = pow(volumeactuel, 1/3)
+    else:
+        posboule = 0
     volume_barre = VolumeBar(0,0,300,posboule)
     #Bouton retour
     btn_retour = Button("RETOUR",0,0, 200, 50)
 
     def update_dimensions(newlargeur, newhauteur):
-        nonlocal imgfond
+        nonlocal imgfond, fonttitle, fonttext
         imgfond = pygame.transform.scale(imgori, (newlargeur, newhauteur))
-        center_x = newlargeur // 2 - 150
+        #Texte se regle en fonction de la res
+        taille_titre = max(30, int(newhauteur*0.08))
+        taille_texte = max(15, int(newhauteur*0.03))
+        fonttitle = pygame.font.Font("ressource/titre.ttf", taille_titre)
+        fonttext = pygame.font.Font("ressource/police.ttf", taille_texte)
+        #Bouton se regle en fontion de res
+        btnw = max(250, int(newlargeur*0.35))
+        btnh = max(40, int(newhauteur*0.07))
+        center_x = newlargeur // 2 - btnw//2
+        btn_pleinecran.rect.width = btnw
+        btn_pleinecran.rect.height = btnh
         btn_pleinecran.rect.x = center_x
-        btn_pleinecran.rect.y = 150
+        btn_pleinecran.rect.y = int(newhauteur*0.15)
         if pleinecran:
             btn_pleinecran.text = "MODE: PLEIN ECRAN"
         else:
             btn_pleinecran.text = "MODE: FENETRE"
+        btn_pleinecran.rect.width = btnw
+        btn_pleinecran.rect.height = btnh
+        btn_resolution.rect.width = btnw
+        btn_resolution.rect.height = btnh
         btn_resolution.rect.x = center_x
-        btn_resolution.rect.y = 220
+        btn_resolution.rect.y = int(newhauteur*0.25)
         btn_resolution.text = f"RESOLUTION: {newlargeur}x{newhauteur}"
-        volume_barre.repositionner(center_x, 350)
-        btn_retour.rect.y = newhauteur - 100
-        btn_retour.rect.x = 50
+        volume_barre.rect.width = btnw
+        volume_barre.repositionner(center_x, int(newhauteur*0.40))
+        btn_retour.rect.width = max(150, int(newlargeur*0.15))
+        btn_retour.rect.height = btnh
+        btn_retour.rect.y = newhauteur - btnh - int(newhauteur*0.05)
+        btn_retour.rect.x = int(newlargeur*0.05)
     
     update_dimensions(L,H)
 
@@ -135,6 +155,7 @@ def option_menu(fenetre, largeur, hauteur):
     while running:
         pos = pygame.mouse.get_pos()
         clique = False
+        actionclique = pygame.mouse.get_pressed()[0]
         #Gestion de clique
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -143,7 +164,6 @@ def option_menu(fenetre, largeur, hauteur):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Clique gauche
                     clique = True
-
             #Resize de l'écran
             if event.type == pygame.VIDEORESIZE:
                 if not pleinecran:
@@ -153,7 +173,6 @@ def option_menu(fenetre, largeur, hauteur):
                 else:
                     L,H = event.w, event.h
                     update_dimensions(L,H)
-
         #Bouton plein écran
         if btn_pleinecran.is_clicked(pos, clique):
             pygame.time.delay(200)
@@ -166,7 +185,6 @@ def option_menu(fenetre, largeur, hauteur):
                 fenetre = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
             L,H = fenetre.get_size()
             update_dimensions(L,H)
-
         #Bouton résolution
         if not pleinecran:
             if btn_resolution.is_clicked(pos, clique):
@@ -177,20 +195,17 @@ def option_menu(fenetre, largeur, hauteur):
                 fenetre = pygame.display.set_mode(new_res, pygame.RESIZABLE)
                 L,H = new_res
                 update_dimensions(L,H)
-
         #Clique ou non sur la barre de volume
-        nouveau_volume = volume_barre.actualise(pos, pygame.mouse.get_pressed()[0])
+        nouveau_volume = volume_barre.actualise(pos, actionclique)
         if nouveau_volume is not None:
             pygame.mixer.music.set_volume(nouveau_volume**1.5) #Volume pour un volume plus rapide
         #Clique sur le bouton retour
         if btn_retour.is_clicked(pos, clique):
             running = False
-
         fenetre.blit(imgfond, (0, 0))
         #Affiche le mot "Options"
         titre = fonttitle.render("OPTIONS", True, WHITE)
-        fenetre.blit(titre, (L//2 - titre.get_width()//2, 50))
-
+        fenetre.blit(titre, (L//2 - titre.get_width()//2, int(H*0.05)))
         #Dessine les boutons
         btn_pleinecran.draw(fenetre, fonttext)
         if not pleinecran:
@@ -198,27 +213,29 @@ def option_menu(fenetre, largeur, hauteur):
         else:
             #En plein ecran on met Resolution désactivée
             txtpleinecran= fonttext.render("RESOLUTION DESACTIVE", True, (100,100,100))
-            fenetre.blit(txtpleinecran, (L//2 - txtpleinecran.get_width()//2, 230))
-
+            fenetre.blit(txtpleinecran, (L//2 - txtpleinecran.get_width()//2, int(H*0.25)+10))
         #Dessine la barre de volume
         dessin_volume = fonttext.render("VOLUME MUSIQUE", True, WHITE)
-        fenetre.blit(dessin_volume, (L//2 - dessin_volume.get_width()//2, 310))
+        fenetre.blit(dessin_volume, (L//2 - dessin_volume.get_width()//2, int(H*0.35)))
         volume_barre.draw(fenetre)
-
-        #Tableau de touche du jeu
-        tableau_touche = pygame.Rect(L//2 - 200, 450, 400, 325)
+        #Tableau de touche du 
+        tableauy = int(H*0.50)
+        tabw = max(350, int(L*0.35))
+        tabh = max(250, int(H*0.40))
+        tableau_touche = pygame.Rect(L//2 - tabw//2, tableauy, tabw, tabh)
         pygame.draw.rect(fenetre, (50,50,50), tableau_touche, border_radius=15)
         pygame.draw.rect(fenetre, GOLD, tableau_touche, 2, border_radius=15)
         commande = ["COMMANDES DU JEU:","AVANCER: Z","RECULER: S","GAUCHE: Q","DROITE: D","PAUSE: ECHAP","LUMIERE: H","FILTRE: T", "ARME: 1,2,3","TIR: CLIQUE GAUCHE"]
+        espacement = tabh // (len(commande)+1)
         for i, ligne in enumerate(commande):
             #Titre en or le reste en blanc
-            titre_couleur = GOLD if i == 0 else WHITE
-            f = fonttitle if i == 0 else fonttext
-            texte = f.render(ligne, True, titre_couleur)
-            #Reduction de la taille du texte si trop large
-            if i == 0: texte= pygame.transform.scale(texte, (int(texte.get_width()*0.5), int(texte.get_height()*0.5)))
+            if i == 0:
+                titre_couleur = GOLD
+            else:
+                titre_couleur = WHITE
+            texte = fonttext.render(ligne, True, titre_couleur)
             #Affichage des lignes
-            fenetre.blit(texte,(L//2 - texte.get_width()//2, 470+i*30))
+            fenetre.blit(texte,(L//2 - texte.get_width()//2, tableauy+10+(i*espacement)))
         btn_retour.draw(fenetre, fonttext)
         pygame.display.flip()
         clock.tick(60)

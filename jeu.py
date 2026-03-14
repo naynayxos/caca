@@ -7,6 +7,7 @@ import socket
 import pickle
 import filtre
 import overlay
+import random  
 
 from prerequis import *
 from prerequis import texture, lumiere
@@ -20,57 +21,73 @@ pygame.display.set_caption("D-RED")
 
 def lancer(ecran, mode = "solo", ip=None):
     LARGEUR, HAUTEUR = ecran.get_size()
-    police, hudmode, hudinventaire, inventaire =overlay.overlay_HUD()
     clock = pygame.time.Clock()
+    #Asset musque ..
+    police, hudmode, hudinventaire, inventaire =overlay.overlay_HUD()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
 
+    #Serveur
+    IPSERV = "51.38.115.211"
     #Reseaux
     socket_jeu = None
     joueursup = {} #Dico qui stock id et tout le reste
     connect = False
-    buffer = b""
+    buffer = b"" #Memoire pour les messages reseauwx
+    #Si on va pas en solo on lance le multi
     if mode != "solo":
         socket_jeu = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if mode == "hote":
-            print("Mode Hote: en attente de joueur...")
+            print("Mode Hote: Envoi carte au serveur {IPSERV}...")
             #Ecran d'attente
             ecran.fill((0,0,0))
             font = pygame.font.SysFont("ressource/police.ttf", 36)
-            text = font.render("En attente de joueur...", True, (255,255,255))
-            ecran.blit(text, (LARGEUR//2 - 150, HAUTEUR//2))
+            text = font.render("Generation de la carte...", True, (255,255,255))
+            ecran.blit(text, (LARGEUR//2 - 200, HAUTEUR//2))
             pygame.display.flip()
             #Configurer le serveur
             try:
-                socket_jeu.bind(('0.0.0.0', 5555))
-                socket_jeu.listen(10)
-                conn, addr = socket_jeu.accept()
-                socket_jeu = conn
+                #Connexion au serveur
+                socket_jeu.connect((IPSERV, 5555))
+                #Dit au serv qu'on est host
+                socket_jeu.send(b"HOST")
                 connect = True
-                idjoueur = str(addr)
-                print(f"Joueur connecté depuis {addr}")
-
-                #L'hote genere la carte
+                #L'hote genere la carte avec seed pour clien est meme
+                partie = random.randint(0, 999999)
+                random.seed(partie)
                 carte, salles, pos = generemap()
-                #Envoie la carte au client
-                data = pickle.dumps({"carte": carte, "salles": salles, "pos": pos})
+                #Envoie la carte et seed au client
+                data = pickle.dumps({"carte": carte, "salles": salles, "pos": pos, "seed": partie})
                 tailledata = len(data).to_bytes(4, byteorder='big')
                 socket_jeu.sendall(tailledata + data)
+                #Attend confirme du serv
+                socket_jeu.recv(1024)
+                #Generation objet avec seed similaire
+                random.seed(partie)
                 objets = generer_objets(carte, salles)
+                idjoueur = "HOTE"
+                print("Carte enregistré avec succes")
             except Exception as e:
                 print(f"Erreur de reseau hote: {e}")
                 return
         elif mode == "client":
-            print(f"Mode Client: connexion au serveur {ip}...")
+            if ip:
+                cible = ip
+            else:
+                cible = IPSERV
+            print(f"Mode Client: connexion au serveur {cible}...")
             try:
-                socket_jeu.connect((ip, 5555))
+                #Connexion au serv
+                socket_jeu.connect((cible, 5555))
+                #On dit au serv qu'on esy Client
+                socket_jeu.send(b"CLIENT")
                 connect = True
-                idjoueur = "SERVEUR"
-                print("Connecté au serveur")
+                idjoueur = "CLIENT"
+                print("Chargement de la carte..")
                 #Reçoit la carte de l'hote
                 taillerecu = socket_jeu.recv(4)
                 tailledata = int.from_bytes(taillerecu, byteorder='big')
-                #Reçoit les données de la carte
+                #Telechargement de la carte
                 paquets = []
                 recu = 0
                 while recu < tailledata:
@@ -79,19 +96,27 @@ def lancer(ecran, mode = "solo", ip=None):
                         raise Exception("Connexion perdue")
                     paquets.append(paquet)
                     recu += len(paquet)
+                #Decodage de la carte reçue
                 data = b''.join(paquets)
                 donneesmap = pickle.loads(data)
                 carte = donneesmap["carte"]
                 salles = donneesmap["salles"]
                 pos = donneesmap["pos"]
+                #Application de la seed pour avoir meme objet
+                partie = donneesmap["seed"]
+                random.seed(partie)
                 objets = generer_objets(carte, salles)
             except Exception as e:
-                print(f"Erreur de reseau client: {e}")
+                print(f"Erreur de chargement de la carte: {e}")
                 return
+        #Empeche le jeu de buger quand on attend un mess reseau
         socket_jeu.setblocking(False)
     else:
         #Partie solo
+        partie = random.randint(0, 999999)
+        random.seed(partie)
         carte, salles, pos = generemap()
+        random.seed(partie)
         objets = generer_objets(carte, salles)
 
     #Chargement assets
@@ -111,13 +136,14 @@ def lancer(ecran, mode = "solo", ip=None):
     texture("joueurgauche.png",(100,100), transparente=True),
     texture("joueurdroit.png",(100,100), transparente=True)
     ]
+    #Calque de lumiere
     lumierefin = lumiere(450)
 
-    #Ascenseur
+    #Menu Ascenseur
     menu = ascenseur.Ascenseur(LARGEUR, HAUTEUR)
-
     #Menu pause
     menupause = pause.EcranPause(LARGEUR, HAUTEUR)
+
     enpause = False
     ouvertemenu = False
     surascenceur = False #Pour savoir si on peut interagir avec l'ascenseur
@@ -125,16 +151,20 @@ def lancer(ecran, mode = "solo", ip=None):
     #Dictionnaire pour sauvegarder les etages déjà visités
     sauvegarde_etage =  {}
     niveau_actuel = 1
+    #Sauvegarde niveau 1 pour pas le perdre
+    sauvegarde_etage[1] = {"carte":carte,"salles":salles,"objets":objets}
 
     #Joueur
     px, py = int(salles[0].centerx), int(salles[0].centery)
     joueur = Joueur(px*ZOOM+(ZOOM//2), py*ZOOM+(ZOOM//2))
 
+    #Variable interface
     font = pygame.font.Font("ressource/police.ttf", 24)
     fondu = 255
-    #Detecte changement
+    #Detecte changement donc animation diff
     armeprec = joueur.arsenal
     glissement = 0
+    actionmap = {} #Reactualise quand caisse cassé et mun recup
     running = True
     while running:
         LARGEUR, HAUTEUR = ecran.get_size()
@@ -142,14 +172,14 @@ def lancer(ecran, mode = "solo", ip=None):
         casex = int(joueur.rect.centerx/ZOOM)
         casey = int(joueur.rect.centery/ZOOM)
         surascenceur = False
+        #Si joueur on verifie ou il est
         if 0 <= casex < LARGEURMAP and 0 <= casey < HAUTEURMAP:
             if carte[casey][casex] == ASCENCEUR:
                 surascenceur = True
-
         #Si on s'eloigne de l'ascenseur alors on ferme le menu
         if not surascenceur:
             ouvertemenu = False
-
+        #Evenement clavier
         click = False
         for event in pygame.event.get():
             filtre.activation_mc(event)
@@ -157,15 +187,19 @@ def lancer(ecran, mode = "solo", ip=None):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
+                #Ouvre inventaire
                 if event.key == pygame.K_LCTRL and not enpause:
                     inventaire= not inventaire
+                #Allume ou eteindre lampe
                 if event.key == pygame.K_h:
                     joueur.lumiereallumee = not joueur.lumiereallumee
+                #Pause ou ferme
                 if event.key == pygame.K_ESCAPE:
                     if ouvertemenu:
                         ouvertemenu = False
                     else:
                         enpause = not enpause
+                #Menu ascenceur
                 if event.key == pygame.K_e and surascenceur:
                     ouvertemenu = not ouvertemenu
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -174,12 +208,7 @@ def lancer(ecran, mode = "solo", ip=None):
        
         if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
-            #Reanimation
-            if keys[pygame.K_e]:
-                joueur.rea = 1
-            else:
-                joueur.rea = 0
-            #Deplacement joueur
+            #Deplacement joueur et collision
             kx, ky = joueur.deplacer(keys, len(animationjoueur))
             joueur.collision(kx, ky, carte, objets)
             #Changement arme
@@ -194,20 +223,35 @@ def lancer(ecran, mode = "solo", ip=None):
             for obj in objets:
                 if obj.type == "munition" and joueur.rect.colliderect(obj.rect):
                     joueur.munition = joueur.munition + 15
+                    #On dit au reseau qu'elle sont supp
+                    actionmap[f"{obj.rect.x}-{obj.rect.y}"] = "S"
                 else:
                     objetsreste.append(obj)
-            objets = objetsreste
+            objets = objetsreste #Met a jour les objets restants
             #Tir
             if keys[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]:
                 joueur.tirer()
-            #Deplacement balle
-            joueur.updatetir(carte, objets)
+            #Deplacement balle et acutalisation caisse cassé
+            casse = joueur.updatetir(carte, objets)
+            if casse:
+                for c in casse:
+                    #On dit au réseau que ca devient munition
+                    actionmap[f"{c.rect.x}-{c.rect.y}"] = "M"
 
         #Reseaux
         if connect:
+            #position balle
+            balle = "vide"
+            if len(joueur.tir) > 0:
+                balle = "_".join([f"{int(b.rect.x)}={int(b.rect.y)}" for b in joueur.tir])
+            #Modification de la map sauvegarde
+            modifmap = "vide"
+            if len(actionmap) > 0:
+                modifmap = "_".join([f"{coordonne}={etat}" for coordonne, etat in actionmap.items()])
+                actionmap.clear() #Vide liste
             try:
                 #Envoie la position du joueur
-                message = f"{joueur.rect.centerx},{joueur.rect.centery},{niveau_actuel},{joueur.angle},{joueur.animation}\n"
+                message = f"{joueur.rect.centerx},{joueur.rect.centery},{niveau_actuel},{joueur.angle},{joueur.animation},{balle},{modifmap}\n"
                 socket_jeu.send(message.encode('utf-8'))
             except BlockingIOError: pass
             except Exception as e: pass
@@ -219,25 +263,67 @@ def lancer(ecran, mode = "solo", ip=None):
                     if b"\n" in buffer:
                         texte = buffer.decode('utf-8')
                         paquetss = texte.split("\n")
-                        dernier = paquetss[-2]
-                    try:
-                        valeur = dernier.split(",")
-                        if len(valeur) == 5:
-                            if idjoueur not in joueursup:
-                                joueursup[idjoueur] = Joueur(int(valeur[0]), int(valeur[1]))
-                            autre = joueursup[idjoueur]
-                            autre.rect.centerx = int(valeur[0])
-                            autre.rect.centery = int(valeur[1])
-                            autre.etage = int(valeur[2])
-                            autre.angle = float(valeur[3])
-                            autre.animation = int(valeur[4])
-                    except Exception as e:
-                        pass
-                    buffer = paquetss[-1].encode('utf-8')
+                        dernier = paquetss[-2] #Isole dernier paquet
+                        try:
+                            #On traite les anciens
+                            for paquet in paquetss[:-1]:
+                                if paquet:
+                                    listejoueur = paquet.split('|')
+                                    for j in listejoueur:
+                                        if j:
+                                            jid, jinfos = j.split(':', 1)
+                                            v = jinfos.split(',')
+                                            #Si modif de carte
+                                            if len(v)>=7 and v[6] != "vide":
+                                                for m in v[6].split('_'):
+                                                    coordonne, etat = m.split('=')
+                                                    mx, my = coordonne.split('-')
+                                                    mx, my = int(mx), int(my)
+                                                    #Maintenant on ajoute la modif sur notre map
+                                                    objsup = None
+                                                    for obj in objets:
+                                                        if obj.rect.x == mx and obj.rect.y == my:
+                                                            if etat == "S":
+                                                                objsup = obj
+                                                            elif etat == "M" and getattr(obj, "type", "") != "munition":
+                                                                #Caisse devient mun
+                                                                obj.type = "munition"
+                                                                obj.texture = texture("munition.png", (90,90), transparente=True)
+                                                                obj.hitbox = obj.rect
+                                                    #Objet ramassé
+                                                    if objsup in objets:
+                                                        objets.remove(objsup)
+                            #Met a jour pos des joueur
+                            if dernier:
+                                listejoueur = dernier.split('|')
+                                for j in listejoueur:
+                                        if j:
+                                            jid, jinfos = j.split(':', 1)
+                                            v = jinfos.split(',')
+                                            if len(v) >= 7:
+                                                #Si nouveau joueur on l'ajoute au dico
+                                                if jid not in joueursup:
+                                                    joueursup[jid] = Joueur(int(v[0]), int(v[1]))
+                                                #Met a jour stat
+                                                autre = joueursup[jid]
+                                                autre.rect.centerx = int(v[0])
+                                                autre.rect.centery = int(v[1])
+                                                autre.etage = int(v[2])
+                                                autre.angle = float(v[3])
+                                                autre.animation = int(v[4])
+                                                #Lecture des balles
+                                                autre.balles_reseau = []
+                                                if v[5] != "vide":
+                                                    for b in v[5].split('_'):
+                                                        ballex, balley = b.split('=')
+                                                        autre.balles_reseau.append((int(ballex), int(balley)))
+                        except Exception as e:
+                            pass
+                        buffer = paquetss[-1].encode('utf-8')
             except BlockingIOError: pass
             except Exception: pass
 
-            #Suivi joueur
+        #Suivi joueur
         camera_x = (LARGEUR//2)-joueur.rect.centerx
         camera_y = (HAUTEUR//2)-joueur.rect.centery
 
@@ -295,6 +381,17 @@ def lancer(ecran, mode = "solo", ip=None):
         if connect:
             for idjoueur, autre in joueursup.items():
                 if getattr(autre, "etage", 1) == niveau_actuel:
+                    #Dessine ses balles
+                    if hasattr(autre, "balles_reseau"):
+                        for ballex, balley in autre.balles_reseau:
+                            ix = ballex+camera_x
+                            iy = balley + camera_y
+                            if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
+                                #On crée la balle
+                                img_balle = pygame.Surface((10,10), pygame.SRCALPHA)
+                                pygame.draw.circle(img_balle,(255,200,0),(5,5),5)
+                                adessiner.append((iy+10, img_balle, (ix,iy)))
+                    #Dessine son perso
                     xjoueur2 = autre.rect.centerx + camera_x
                     yjoueur2 = autre.rect.centery + camera_y
                     #On dessine que si il est visible
@@ -363,6 +460,7 @@ def lancer(ecran, mode = "solo", ip=None):
                         salles = sauvegarde_etage[etage_choisi]["salles"]
                         objets = sauvegarde_etage[etage_choisi]["objets"]
                     else:
+                        random.seed(partie+etage_choisi)
                         carte, salles, pos = generemap()
                         objets = generer_objets(carte, salles)
                     #Repositionne le joueur sur la nouvelle carte a l"ascenseur
@@ -391,21 +489,24 @@ def lancer(ecran, mode = "solo", ip=None):
                 elif action == "OPTIONS":
                     ecran = option.option_menu(ecran, LARGEUR, HAUTEUR)
                     LARGEUR, HAUTEUR = ecran.get_size()
+                    #Met a jour les res de tout le jeu
                     menupause.update_dimensions(LARGEUR, HAUTEUR)
                     menu.update_dimensions(LARGEUR, HAUTEUR)
                     img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
                 elif action == "MENU PRINCIPAL":
-                    return
+                    return #Revenir au menu principal
                 elif action == "QUITTER":
                     pygame.quit()
                     sys.exit()
 
+        #Overlay
         if not enpause:
             #Barre endurance
             #Il court ?
             touche = pygame.key.get_pressed()
             mouvement = touche[pygame.K_LEFT] or touche[pygame.K_RIGHT] or touche[pygame.K_UP] or touche[pygame.K_DOWN] or touche[pygame.K_z] or touche[pygame.K_s] or touche[pygame.K_q] or touche[pygame.K_d]
             course = mouvement and touche[pygame.K_LSHIFT] and joueur.endurance > 0
+            #Apparition fondu de la barre
             if not course and joueur.endurance >= joueur.maxcourse:
                 fondu = max(0, fondu-5)
             else:

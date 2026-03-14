@@ -1,6 +1,4 @@
 import pygame
-import sys
-import subprocess
 import webbrowser
 import jeu
 import option
@@ -8,11 +6,12 @@ import dl
 
 pygame.init()
 
-fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
-
 #Fénétre jeu
+fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
 WIDTH, HEIGHT = fenetre.get_size()
-pygame.display.set_caption("FarLand Venture")
+
+#Titre et logo de la fenêtre
+pygame.display.set_caption("D-RED")
 pygame.display.set_icon(pygame.image.load("ressource/logo.png"))
 
 #Musique de fond
@@ -30,10 +29,7 @@ rect_site = img_site.get_rect()
 WHITE = (255,255,255)
 SHADOW = (0,0,0,150)
 BLACK = (0,0,0)
-GLASS_HOVER = (255, 255, 255, 100)
-GLASS_BASE = (255, 255, 255, 50)
 GLASS_BORDER = (255, 255, 255, 150)
-GLOW_COLOR = (100, 200, 255)
 GOLD = (255, 215, 0)
 GOLD_BRILLANT = (218, 179, 10)
 GOLD_TRANSPARENT = (255, 215, 0, 100)
@@ -52,13 +48,14 @@ class Button:
         self.led = 0
         self.dore = 0
     
-    def update_pos(self, x, y, L, H):
+    def update_pos(self, x, y, L, H): #met a jour les boutons si on change de res
         self.width = L
         self.height = H
         self.rect = pygame.Rect(x, y, L, H)
     
     def draw(self, win, mouse_pos):
-        is_hover = self.rect.collidepoint(mouse_pos)
+        is_hover = self.rect.collidepoint(mouse_pos) #Sur rectangle ou pas ?
+        #Effet lumineux
         if is_hover:
             self.led = min(255,self.led + 15)
             self.dore = min(255,self.dore + 20)
@@ -68,11 +65,15 @@ class Button:
 
         # Effet doré lors du survol
         if is_hover:
-            gold_rect = self.rect.inflate(10, 10)
+            gold_rect = self.rect.inflate(10, 10) #Rectangle contour
             pygame.draw.rect(win, GOLD_BRILLANT, gold_rect, width=3, border_radius=20)
 
         # Dessiner le bouton avec effet de verre
-        color = GOLD_TRANSPARENT if is_hover else GLASS_BORDER
+        if is_hover:
+            color = GOLD_TRANSPARENT
+        else:
+            color = GLASS_BORDER
+        #Transparence
         button_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         pygame.draw.rect(button_surface, color, (0, 0, self.width, self.height), border_radius=15)
         pygame.draw.rect(button_surface, GLASS_BORDER, (0, 0, self.width, self.height), width=1, border_radius=15)
@@ -83,33 +84,27 @@ class Button:
         
         win.blit(button_surface, self.rect)
 
+        #Texte et ombre
         text_surf = FONT_BUTTON.render(self.text, True, WHITE)
         text_rect = text_surf.get_rect(center=self.rect.center)
-
         shadow = FONT_BUTTON.render(self.text, True, SHADOW)
+
+        #Decale ombre pour relief
         win.blit(shadow, (text_rect.x + 1, text_rect.y + 1))
         win.blit(text_surf, text_rect)
 
     def is_clicked(self, mouse_pos, mouse_pressed):
+        #True si souris survol et clic gauche
         return self.rect.collidepoint(mouse_pos) and mouse_pressed[0] #Clic gauche
-    
-#Les boutons
-buttons = [
-    Button("Nouvelle Partie","new"),
-    Button("Heberger Partie", "hote"),
-    Button("Charger Partie", "load"),
-    Button("Rejoindre Partie", "rejoindre"),
-    Button("Options", "options"),
-    Button("Quitter", "quit")
-]
 
 #Recalcul de la resolution après le menu des options
 def update_resolution(L, H):
+    #Pour modif variable global
     global background, FONT_TITLE, FONT_BUTTON, WIDTH, HEIGHT, rect_site
     WIDTH,HEIGHT = L,H
     #Redimensionner l'image de fond
     background = pygame.transform.scale(backgroundori, (L, H))
-    #Taille police 
+    #Taille police par nouvelle resolution
     tailletitre = int(80*H/1080)
     taillebutoon=int(28*H/1080)
     FONT_TITLE = pygame.font.Font("ressource/PoliceFarland2.ttf", tailletitre)
@@ -128,47 +123,71 @@ def update_resolution(L, H):
         posy = startY+i*(btnH+btnespace)
         button.update_pos(startX, posy, btnL, btnH)
 
-#On l'appelle une première fois pour initialiser les positions
-update_resolution(WIDTH, HEIGHT)
-
 def demander_ip(fenetre):
     police = pygame.font.Font("ressource/police.ttf", 28)
     input_rect = pygame.Rect(0,0,200,32)
     input_rect.center = (fenetre.get_width()//2, fenetre.get_height()//2)
-    user = ''
+    user = ''  #stock texte tape 
     active = True
     while active:
         fenetre.fill((30,30,30))
-        #Fenetre de saisie
+        #Fenetre de demande d'IP
         titre = police.render("Entrez l'IP de l'hôte :", True, WHITE)
         fenetre.blit(titre, (fenetre.get_width()//2 - 200, fenetre.get_height()//2 - 50))
         #Affichage du texte saisi
         txt_surface = police.render(user, True, WHITE)
         fenetre.blit(txt_surface, (input_rect.x+5, input_rect.y+5))
-        pygame.draw.rect(fenetre, WHITE, input_rect, 2)
-        pygame.display.flip()
+        pygame.draw.rect(fenetre, WHITE, input_rect, 2) #Endroit ou en rentre IP
+        pygame.display.flip() #Met a jour quand ecris
+        #Touche du clavier
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    return user
-                elif event.key == pygame.K_BACKSPACE:
-                    user = user[:-1]
+                if event.key == pygame.K_RETURN: #Touche entree
+                    return user #Valide l'ip tapé
+                elif event.key == pygame.K_BACKSPACE: #Touche effacer
+                    user = user[:-1] #Enleve dernier chiffer
                 else:
-                    user += event.unicode
+                    user += event.unicode #Ajoute lettre
     return None
+
+def retourmenu():
+    #Recharge menu apres partie
+    pygame.event.clear()
+    #Remet res
+    nouvres = pygame.display.get_surface()
+    nouvlard, nouvhaut = nouvres.get_size()
+    update_resolution(nouvlard, nouvhaut)
+    #Remet musique
+    pygame.mixer.music.load("ressource/Musique.mp3")
+    pygame.mixer.music.play(-1)
+
+#Les boutons
+buttons = [
+    Button("Nouvelle Partie","new"),
+    Button("Heberger Partie", "hote"),
+    Button("Charger Partie", "load"),
+    Button("Rejoindre Partie", "rejoindre"),
+    Button("Options", "options"),
+    Button("Quitter", "quit")
+]
+
+#On l'appelle une première fois pour initialiser les positions
+update_resolution(WIDTH, HEIGHT)
 
 running = True
 clock = pygame.time.Clock()
 
 while running:
     clock.tick(60)  # Limite à 60 FPS
+    #Fermeture du jeu
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    #Fond de depart
     fenetre.blit(background, (0,0))
-
-    mouse_pos = pygame.mouse.get_pos()
-    mouse_pressed = pygame.mouse.get_pressed()
-
+    #Titre et ombre
     title1 = FONT_TITLE.render("FarLand", True, WHITE)
     shadow1= FONT_TITLE.render("FarLand", True, SHADOW)
     title2 = FONT_TITLE.render("Venture", True, WHITE)
@@ -180,37 +199,34 @@ while running:
     #Coordonnées du titre2
     y2 = y1+ title1.get_height() - 10
     x2 = (int(WIDTH*0.75)) - (title2.get_width()//2)
-
+    #Affichage sur ecran
     fenetre.blit(shadow1, (x1 + 3, y1 + 3))
     fenetre.blit(title1, (x1, y1))
     fenetre.blit(shadow2, (x2 + 3, y2 + 3))
     fenetre.blit(title2, (x2, y2))
-
     fenetre.blit(img_site, rect_site)
-
+    #Coordonne souris et action
+    mouse_pos = pygame.mouse.get_pos()
+    mouse_pressed = pygame.mouse.get_pressed()
     #Ouvrir le site web en cliquant sur l'image du site
     if rect_site.collidepoint(mouse_pos) and mouse_pressed[0]:
         pygame.time.delay(200)  # eviter les clics multiples
         webbrowser.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-
+    #Logique et affichage boutons
     for button in buttons:
         button.draw(fenetre, mouse_pos)
         if button.is_clicked(mouse_pos, mouse_pressed):
-            pygame.time.delay(200)
+            pygame.time.delay(200) #Pause missclick
+            #Nouvelle partie
             if button.action == "new":
                 print("Nouvelle Partie")
-                pygame.mixer.music.fadeout(500)
-                #Chagement
+                pygame.mixer.music.fadeout(500) #Baisse en fondu le son
+                #lance le Chagement
                 dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
-                #Mode Hote
+                #lance le Mode Hote
                 jeu.lancer(fenetre, mode = "solo")
-                print("Retour au menu")
-                pygame.event.clear()
-                fenetre = pygame.display.get_surface()
-                WIDTH, HEIGHT = fenetre.get_size()
-                update_resolution(WIDTH, HEIGHT)
-                pygame.mixer.music.load("ressource/Musique.mp3")
-                pygame.mixer.music.play(-1)
+                retourmenu()
+            #Mode host
             elif button.action == "hote":
                 print("Lancement du serveur")
                 pygame.mixer.music.fadeout(500)
@@ -218,52 +234,32 @@ while running:
                 dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
                 #Mode Hote
                 jeu.lancer(fenetre, mode = "hote")
-                print("Retour au menu")
-                pygame.event.clear()
-                fenetre = pygame.display.get_surface()
-                WIDTH, HEIGHT = fenetre.get_size()
-                update_resolution(WIDTH, HEIGHT)
-                try:
-                    pygame.mixer.music.load("ressource/Musique.mp3")
-                    pygame.mixer.music.play(-1)
-                except: pass
+                retourmenu()
+            #Charger Partie
             elif button.action == "load":
                 print("Charger Partie")
+            #Options
             elif button.action == "options":
                 print("Options")
                 # Lancer le menu des options
                 fenetre=option.option_menu(fenetre, WIDTH, HEIGHT)
-                #Actualiser la taille de la fenêtre après le menu des options
-                WIDTH, HEIGHT = fenetre.get_size()
-                update_resolution(WIDTH, HEIGHT)
-                #Pour eviter missvkivk entre retour et nouvelle partie
-                pygame.event.clear()
+                retourmenu()
                 pygame.time.delay(300)
+            #Rejoindre
             elif button.action == "rejoindre":
                 print("Rejoindre")
-                ip = demander_ip(fenetre)
-                if ip:
+                ip = demander_ip(fenetre) #OUvre ecran pour rentrer IP
+                if ip: #Si l'IP est rentré
                     pygame.mixer.music.fadeout(500)
                     #Chargement
                     dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
                     #Mode Client
                     jeu.lancer(fenetre, mode = "client", ip=ip)
-                    print("Retour au menu")
-                    pygame.event.clear()
-                    fenetre = pygame.display.get_surface()
-                    WIDTH, HEIGHT = fenetre.get_size()
-                    update_resolution(WIDTH, HEIGHT)
-                    try:
-                        pygame.mixer.music.load("ressource/Musique.mp3")
-                        pygame.mixer.music.play(-1)
-                    except: pass
+                    retourmenu()
+            #Quitter le jeu
             elif button.action == "quit":
                 running = False
-    
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    
+    #Met ajour affichage
     pygame.display.flip()
 pygame.quit()
 print("Fermeture du jeu.")

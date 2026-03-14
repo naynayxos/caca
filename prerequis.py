@@ -5,44 +5,51 @@ import math
 ZOOM = 180
 LARGEURMAP,HAUTEURMAP= 50,50
 VITESSEJOUEUR = 10
+#Types de cases de la carte
 VIDE = 2
 MUR = 1
 SOL = 0
-NUIT = (15,15,25)
 ASCENCEUR = 3
-
+#Couleur
+NUIT = (15,15,25)
 #assets
 def texture(nom,taille = None, transparente = False):
     chemin = os.path.join("ressource", nom)
-    try:
-        img= pygame.image.load(chemin)
-        if transparente:
-            img.set_colorkey((255,255,255))
-        if taille:
-            w,h= taille
-            img= pygame.transform.scale(img, (w, h))
-        return img.convert_alpha()
-    except:
-        return None
+    img= pygame.image.load(chemin)
+    #Transparence
+    if transparente:
+        img.set_colorkey((255,255,255))
+    #Redimenssionement
+    if taille:
+        w,h= taille
+        img= pygame.transform.scale(img, (w, h))
+    return img.convert_alpha()
 
 #Effet Lumiere
 def lumiere(rayon):
-    t = rayon*2.5
+    t = int(rayon*2.5)
+    #Surface vide pour la transparence
     s = pygame.Surface((t,t),pygame.SRCALPHA)
+    #Centre de s
     c = (t//2,t//2)
-    #plusieur cercle pour tamiser
+    #plusieur cercle pour tamiser 
     for i in range(rayon//2,0,-2):
+        #calcul opacité
         a = int(100*(i/(rayon//2)))
         if a>0:
             pygame.draw.circle(s,(255,240,200,5),c,i)
+    #cone de la lumiere
     longueurcone = rayon
-    angless=30
+    angless=30  #Degres du cone
     etape = 100 #Puissance dégradé
     for i in range(etape):
+        #Distance par rapport au centre
         distance = (i/etape)*longueurcone
+        #Largeur du cone
         largeur= int(distance*math.tan(math.radians(angless)))
         posx = c[0]+distance
         posy = c[1]
+        #Puissance de la lumiere
         p=60*(1-(i/etape))
         if largeur>0:
             brosse = pygame.Surface((largeur*2,largeur*2), pygame.SRCALPHA)
@@ -52,19 +59,25 @@ def lumiere(rayon):
     return s
 
 def angletrace(c, t, f):
+    #Calcul rotation pour la fluidité
     d = (t-c+180)%360-180
     return c+d*f
 
 #Collision
 def obstacle(rect_joueur,grille):
     obstacle=[]
+    #On cherche dans quelle case se trouve joueur
     casex=int(rect_joueur.centerx/ZOOM)
     casey=int(rect_joueur.centery/ZOOM)
+    #On cherche un carre de 5x5 autour de lui
     for y in range(casey-2,casey+3):
         for x in range(casex-2,casex+3):
+            #Verifie qu'on sort pas de la map
             if 0 <= x < LARGEURMAP and 0 <= y < HAUTEURMAP:
                 case = grille[y][x]
+                #Si case est un mur
                 if case == MUR or case == VIDE:
+                    #On fais hitbox pour ce mur
                     rect_mur = pygame.Rect(x*ZOOM,y*ZOOM,ZOOM,ZOOM)
                     obstacle.append(rect_mur)
     return obstacle

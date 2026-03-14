@@ -7,62 +7,65 @@ from arme import Arme
 
 class Joueur:
     def __init__(self, x, y):
+        #Hitbox et pos
         self.rect = pygame.Rect(x, y, 40, 40)
         self.rect.center = (x, y)
-
+        #Rotation
         self.angle = 0
         self.angleactuel = 0
         self.dernierkx = 1
         self.dernierky = 0
-
+        #Animation
         self.animation = 0
         self.time = 0
         self.vitesseanim = 5
         self.lumiereallumee = False
-
+        #Deplacement
         self.marche = 7
         self.course = 11
         self.maxcourse = 100
         self.endurance = self.maxcourse
-
+        #Armes
         self.tir = []
         self.vitessetir = 0
         self.delaytir = 12
         self.munition = 30
         self.arsenal = 1
 
-        self.hpmax = 100
-        self.hp = self.hpmax
-        self.clef = False
-        self.rea = 0
-
     def changerarme(self, num):
         self.arsenal = num
     
     def updatetir(self, carte, objets):
+        objetcasse = [] #Liste obj casse pour le serveur
+        #Coultdown arme
         if self.vitessetir > 0:
             self.vitessetir -=1
         #Mise a jour position des tirs
         tiractuelle = []
         for balle in self.tir:
             balle.deplacer()
+            #Verifie que la balle a percuter
             touche = balle.collisionoupas(carte, objets)
             if not touche:
                 tiractuelle.append(balle)
-            elif touche != "mur": #Touche objet
+            elif touche != "mur": 
+                #Touche objet destructible
                 if not hasattr(touche, 'hp'):
                     touche.hp = 3
                 touche.hp = touche.hp -1
                 if touche.hp <= 0:
-                    #La caisse se casse
+                    #La caisse se casse et se transforme en muni
                     touche.type = "munition"
                     touche.texture = texture("munition.png", (90,90), transparente=True)
                     touche.hitbox = touche.rect
+                    objetcasse.append(touche)
         self.tir = tiractuelle
+        return objetcasse
 
     def tirer(self):
+        #On peut tirer que si on a des balle et que le couldown est fini
         if self.munition>0 and self.vitessetir <= 0:
-            #Appariton de la balle
+            #Calcul de l'Appariton de la balle
             pangle = math.radians(self.angleactuel)
             debutx = self.rect.centerx + math.cos(pangle)*20
             debuty = self.rect.centery - math.sin(pangle)*20
@@ -75,13 +78,14 @@ class Joueur:
             elif self.arsenal == 2:
                 #Fusil a pompe: 2 balle
                 if self.munition>=2:
+                    #Tire 5 balle avec angles
                     for pompe in [-16, -8, 0, 8, 16]:
                         p = Arme(debutx, debuty, self.angleactuel+pompe)
                         self.tir.append(p)
                     self.vitessetir = 40
                     self.munition = self.munition - 2
             elif self.arsenal == 3:
-                #Fusil d'assaut: rapide
+                #Fusil d'assaut: rapide avec recul entre -5 et 5 deg
                 recul = random.uniform(-5, 5)
                 p = Arme(debutx, debuty, self.angleactuel+recul)
                 self.tir.append(p)
@@ -91,28 +95,27 @@ class Joueur:
     def deplacer(self, keys, nb_frame):
         vitesse = self.marche
         mouvement = False
-        if self.hp <= 0:
-            vitesse = 2
+        #Verifie si se déplace
+        if keys[pygame.K_LEFT] or keys[pygame.K_q] or keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_UP] or keys[pygame.K_z] or keys[pygame.K_DOWN] or keys[pygame.K_s]:    
+            mouvement = True
+        #Sprint avec shift
+        if mouvement == True and keys[pygame.K_LSHIFT] and self.endurance > 0:
+            vitesse = self.course
+            self.endurance -= 0.5
         else:
-            if keys[pygame.K_LEFT] or keys[pygame.K_q] or keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_UP] or keys[pygame.K_z] or keys[pygame.K_DOWN] or keys[pygame.K_s]:    
-                mouvement = True
-            if mouvement == True and keys[pygame.K_LSHIFT] and self.endurance > 0:
-                vitesse = self.course
-                self.endurance -= 0.5
-            else:
-                if self.endurance < self.maxcourse:
-                    self.endurance += 0.1
+            if self.endurance < self.maxcourse:
+                self.endurance += 0.1
 
-        #Commande
+        #Commande et calcul de deplacement
         kx, ky = 0,0
         if keys[pygame.K_LEFT] or keys[pygame.K_q]:
-            kx = -vitesse
+            kx -= vitesse
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            kx = vitesse
+            kx += vitesse
         if keys[pygame.K_UP] or keys[pygame.K_z]:
-            ky = -vitesse
+            ky -= vitesse
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            ky = vitesse
+            ky += vitesse
 
         #Diagonale meme vitesse
         if kx !=0 and ky !=0:
@@ -122,11 +125,6 @@ class Joueur:
         #Mise a jour angle
         if kx !=0 or ky != 0:
             self.dernierkx, self.dernierky=kx,ky
-        
-        anglecible = math.degrees(math.atan2(-self.dernierky, self.dernierkx))
-        self.angleactuel = angletrace(self.angleactuel,anglecible,0.15)
-
-        if kx!=0 or ky!=0:
             self.time +=1
             if self.time > self.vitesseanim:
                 self.time = 0
@@ -134,12 +132,11 @@ class Joueur:
         else:
             self.animation = 0
             self.time = 0
-
-        #Calcul angle pour perso
-        anglejoueur = math.degrees(math.atan2(-self.dernierky, self.dernierkx))
-        angleactuellejoueur = angletrace(self.angleactuel, anglejoueur, 0.15)
+        #Tourner le joueur fuldifié
+        anglecible = math.degrees(math.atan2(-self.dernierky, self.dernierkx))
+        self.angleactuel = angletrace(self.angleactuel,anglecible,0.15)
         #Rotation image joueur
-        self.angle = angleactuellejoueur +90
+        self.angle = self.angleactuel +90
         return kx, ky
     
     def collision(self, kx, ky, carte, objets):
