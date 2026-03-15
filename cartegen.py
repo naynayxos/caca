@@ -5,16 +5,33 @@ from prerequis import *
 from prerequis import texture
 
 class Objet:
-    def __init__(self,x,y,name,type,size=None):
+    def __init__(self,x,y,name,type,size=None,cote=None):
+        #Taille des texture
+        if size:
+            taillew,tailleh = size
+        else:
+            taillew,tailleh = ZOOM, ZOOM
         #Position et taille objet
-        self.rect = pygame.Rect(x,y,ZOOM,ZOOM)
+        self.rect = pygame.Rect(0,0,taillew,tailleh)
+        if cote == "bas":
+            self.rect.centerx = x+ZOOM//2
+            self.rect.bottom = y +ZOOM
+        elif cote == "haut":
+            self.rect.centerx = x+ZOOM//2
+            self.rect.top = y
+        elif cote == "droite":
+            self.rect.right = x+ZOOM
+            self.rect.centery = y +ZOOM//2
+        elif cote == "gauche":
+            self.rect.left = x
+            self.rect.centery = y +ZOOM//2
         self.texture=texture(name,size,transparente=True)
-        self.type = type   
+        self.type = type  
         #Reduction hitbox si c'est un meuble
         if type == "meuble":
-            self.hitbox = self.rect.inflate(-20,-20)
+            self.hitbox = self.rect.inflate(-taillew//4,-tailleh//4)
         else:
-            self.hitbox = self.rect
+            self.hitbox = self.rect.copy()
         
     def draw(self,surface, camera_x, camera_y):
         fenetre_x = self.rect.x + camera_x
@@ -36,8 +53,17 @@ def generer_objets(grille, salles):
             for x in range(salle.left, salle.right):
                 #On place des objets que sur les sols
                 if grille[y][x] == SOL:
-                    #Verifie si mur au tour, si oui il y a 20% de chance d'avoir objet
-                    if (grille[y+1][x] == MUR or grille[y-1][x] == MUR or grille[y][x+1] == MUR or grille[y][x-1] == MUR) and random.random() < 0.2:
+                    #Detecte les cote du mur
+                    cotes = []
+                    if grille[y+1][x] == MUR:
+                        cotes.append("bas")
+                    if grille[y-1][x] == MUR:
+                        cotes.append("haut")
+                    if grille[y][x+1] == MUR:
+                        cotes.append("droite")
+                    if grille[y][x-1] == MUR:
+                        cotes.append("gauche")
+                    if cotes and random.random()<0.2:
                         #Objet au hasard
                         t = random.choice(types)
                         #Verifie proba d'apparition
@@ -46,8 +72,9 @@ def generer_objets(grille, salles):
                                 taillemun = (ZOOM//2, ZOOM//2)
                             else:
                                 taillemun = (ZOOM, ZOOM)
+                            cotebon = random.choice(cotes)
                             #Creation de l'objet
-                            obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=taillemun)
+                            obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=taillemun, cote=cotebon)
                             objets.append(obj)
     return objets
 

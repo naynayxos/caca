@@ -11,7 +11,8 @@ import random
 import math
 
 from prerequis import *
-from prerequis import texture, lumiere
+from prerequis import texture
+from lumiere import Lumiere
 from cartegen import generemap, generer_objets
 from joueur import Joueur
 from arme import Arme
@@ -139,7 +140,7 @@ def lancer(ecran, mode = "solo", ip=None):
     texture("joueurdroit.png",(100,100), transparente=True)
     ]
     #Calque de lumiere
-    lumierefin = lumiere(450)
+    lumieremarche = Lumiere(LARGEUR, HAUTEUR)
 
     #Menu Ascenseur
     menu = ascenseur.Ascenseur(LARGEUR, HAUTEUR)
@@ -195,6 +196,9 @@ def lancer(ecran, mode = "solo", ip=None):
                 #Allume ou eteindre lampe
                 if event.key == pygame.K_h:
                     joueur.lumiereallumee = not joueur.lumiereallumee
+                    if (joueur.lumiereallumee or not joueur.lumiereallumee) and filtre.m_combat:
+                        filtre.m_combat = False
+                        joueur.lumiereallumee = True
                 #Pause ou ferme
                 if event.key == pygame.K_ESCAPE:
                     if ouvertemenu:
@@ -424,16 +428,7 @@ def lancer(ecran, mode = "solo", ip=None):
             ecran.blit(i[1], i[2]) #image, position
 
         #Effet Lumiere quand activé
-        if joueur.lumiereallumee:
-            #Maque sombre autoru
-            masque = pygame.Surface((LARGEUR,HAUTEUR))
-            masque.fill(NUIT)
-            #Tourne lumiere
-            lumieretourne = pygame.transform.rotate(lumierefin,joueur.angleactuel)
-            rectlumiere = lumieretourne.get_rect(center =(LARGEUR//2,HAUTEUR//2))
-            #Lumiere au masque
-            masque.blit(lumieretourne,rectlumiere,special_flags=pygame.BLEND_ADD)
-            ecran.blit(masque,(0,0),special_flags=pygame.BLEND_MULT)
+        lumieremarche.appliquer(ecran, joueur, filtre.m_combat)
 
         #Message sur ascenseur
         if surascenceur and not ouvertemenu:

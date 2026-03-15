@@ -112,18 +112,25 @@ class Joueur:
         #Commande et calcul de deplacement
         kx, ky = 0,0
         if keys[pygame.K_LEFT] or keys[pygame.K_q]:
-            kx -= vitesse
+            kx -= 1
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            kx += vitesse
+            kx += 1
         if keys[pygame.K_UP] or keys[pygame.K_z]:
-            ky -= vitesse
+            ky -= 1
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            ky += vitesse
+            ky += 1
+        
+        #Direction avant de bouger
+        if kx !=0 and ky !=0:
+            self.dernierkx, self.dernierky = kx,ky
 
         #Diagonale meme vitesse
         if kx !=0 and ky !=0:
             kx *=0.707
             ky *=0.707
+        
+        kx *= vitesse
+        ky *= vitesse
 
         #Mise a jour angle
         if kx !=0 or ky != 0:
@@ -137,9 +144,13 @@ class Joueur:
             self.time = 0
         #Tourner le joueur fuldifié
         anglecible = math.degrees(math.atan2(-self.dernierky, self.dernierkx))
-        self.angleactuel = angletrace(self.angleactuel,anglecible,0.15)
-        #Rotation image joueur
-        self.angle = self.angleactuel +90
+        if kx !=0 or ky != 0:
+            #On lisse deplacement
+            self.angleactuel = angletrace(self.angleactuel,anglecible,0.15)
+        else:
+            #Fixe son angle
+            self.angleactuel = anglecible
+        self.angle = self.angleactuel + 90
         return kx, ky
     
     def collision(self, kx, ky, carte, objets):
