@@ -47,7 +47,7 @@ def rejoindre(fenetre, L, H):
     fonttexte = pygame.font.Font("ressource/police.ttf", taille_texte)
 
     #Parametre barre IP
-    ip = ""
+    ip = "51.38.115.211"
     iprect = pygame.Rect(L//2-250, H//2-25, 500, 50)
 
     #Bouton
