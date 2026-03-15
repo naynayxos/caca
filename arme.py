@@ -11,6 +11,10 @@ class Arme:
         self.posx = float(x)
         self.posy = float(y)
         self.vitesse = 25 #vitesse des balles
+        #Orientation balle
+        angleballe = math.radians(-direction)
+        self.dx = math.cos(angleballe)
+        self.dy = math.sin(angleballe)
         # Calcul de la direction de tir
         angle = math.radians(direction)
         self.ux = math.cos(angle) * self.vitesse
@@ -30,7 +34,8 @@ class Arme:
         o = obstacle(self.rect, carte)
         # Vérifie la collision avec les objets
         for obj in objets:
-            if obj.type == "meuble":
+            typee=getattr(obj, "type", "")
+            if typee == "meuble":
                 if self.rect.colliderect(obj.hitbox):
                     return obj
         # Vérifie la collision avec les murs

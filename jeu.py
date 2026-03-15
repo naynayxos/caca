@@ -8,6 +8,7 @@ import pickle
 import filtre
 import overlay
 import random  
+import math
 
 from prerequis import *
 from prerequis import texture, lumiere
@@ -126,6 +127,7 @@ def lancer(ecran, mode = "solo", ip=None):
     img_murtop = texture("murtop.png", (ZOOM+1, ZOOM+1))
     img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
     img_munition = texture("munitionoverlay.png", (80,80), transparente=True)
+    img_ballevol = texture("balle.png", (45,45), transparente=True)
     img_arme = {
         1: texture("pistolet.png",(250,80), transparente= True),
         2: texture("pompe.png",(250,80), transparente= True),
@@ -373,7 +375,11 @@ def lancer(ecran, mode = "solo", ip=None):
             ix = tir.rect.x + camera_x
             iy = tir.rect.y + camera_y
             if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
-                adessiner.append((iy+tir.rect.height, tir.image, (ix, iy)))
+                angleballe = math.atan2(tir.dy, tir.dx)
+                angle = -math.degrees(angleballe)
+                balleangle = pygame.transform.rotate(img_ballevol, angle)
+                rectballe = balleangle.get_rect(center=(ix,iy))
+                adessiner.append((rectballe.bottom, balleangle, rectballe.topleft))
 
         img_autrejoueur = animationjoueur[joueur.animation]
             

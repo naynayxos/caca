@@ -23,7 +23,7 @@ pygame.mixer.music.play(-1) #Musique en boucle
 backgroundori = pygame.image.load("ressource/images.png").convert()
 background = pygame.transform.scale(backgroundori, (WIDTH, HEIGHT)) 
 imgsite = pygame.image.load("ressource/site.png").convert_alpha()
-img_site = pygame.transform.scale(imgsite, (100, 100))
+img_site = pygame.transform.scale(imgsite, (WIDTH*0.03, HEIGHT*0.05))
 rect_site = img_site.get_rect()
 
 #Couleur
