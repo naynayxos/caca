@@ -24,7 +24,7 @@ def lancer(ecran, mode = "solo", ip=None):
     LARGEUR, HAUTEUR = ecran.get_size()
     clock = pygame.time.Clock()
     #Asset musque ..
-    police, hudmode, hudinventaire, inventaire =overlay.overlay_HUD()
+    police, hudmode, hudinventaire, inventaire, coeur =overlay.overlay_HUD()
     pygame.mixer.music.load("ressource/explo.mp3")
     pygame.mixer.music.play(-1)
 
@@ -541,6 +541,8 @@ def lancer(ecran, mode = "solo", ip=None):
 
         #texte mode overlay
         overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode, inventaire)
+        if not enpause :
+            overlay.hud_life(ecran, LARGEUR, HAUTEUR, joueur.hp, joueur.hpmax, police, coeur)
         pygame.display.flip()
         clock.tick(60)
     
