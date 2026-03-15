@@ -3,6 +3,7 @@ import webbrowser
 import jeu
 import option
 import dl
+import rejoindre
 
 pygame.init()
 
@@ -123,35 +124,6 @@ def update_resolution(L, H):
         posy = startY+i*(btnH+btnespace)
         button.update_pos(startX, posy, btnL, btnH)
 
-def demander_ip(fenetre):
-    police = pygame.font.Font("ressource/police.ttf", 28)
-    input_rect = pygame.Rect(0,0,200,32)
-    input_rect.center = (fenetre.get_width()//2, fenetre.get_height()//2)
-    user = ''  #stock texte tape 
-    active = True
-    while active:
-        fenetre.fill((30,30,30))
-        #Fenetre de demande d'IP
-        titre = police.render("Entrez l'IP de l'hôte :", True, WHITE)
-        fenetre.blit(titre, (fenetre.get_width()//2 - 200, fenetre.get_height()//2 - 50))
-        #Affichage du texte saisi
-        txt_surface = police.render(user, True, WHITE)
-        fenetre.blit(txt_surface, (input_rect.x+5, input_rect.y+5))
-        pygame.draw.rect(fenetre, WHITE, input_rect, 2) #Endroit ou en rentre IP
-        pygame.display.flip() #Met a jour quand ecris
-        #Touche du clavier
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return None
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN: #Touche entree
-                    return user #Valide l'ip tapé
-                elif event.key == pygame.K_BACKSPACE: #Touche effacer
-                    user = user[:-1] #Enleve dernier chiffer
-                else:
-                    user += event.unicode #Ajoute lettre
-    return None
-
 def retourmenu():
     #Recharge menu apres partie
     pygame.event.clear()
@@ -166,8 +138,8 @@ def retourmenu():
 #Les boutons
 buttons = [
     Button("Nouvelle Partie","new"),
-    Button("Heberger Partie", "hote"),
     Button("Charger Partie", "load"),
+    Button("Heberger Partie", "hote"),
     Button("Rejoindre Partie", "rejoindre"),
     Button("Options", "options"),
     Button("Quitter", "quit")
@@ -248,7 +220,7 @@ while running:
             #Rejoindre
             elif button.action == "rejoindre":
                 print("Rejoindre")
-                ip = demander_ip(fenetre) #OUvre ecran pour rentrer IP
+                ip = rejoindre.rejoindre(fenetre, WIDTH,HEIGHT) #OUvre ecran pour rentrer IP
                 if ip: #Si l'IP est rentré
                     pygame.mixer.music.fadeout(500)
                     #Chargement

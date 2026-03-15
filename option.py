@@ -19,7 +19,10 @@ class Button:
 
     def draw(self, surface, font):
         #Couleur du bouton au survol
-        dessus = GOLD if self.hover else BLACK
+        if self.hover:
+            dessus = GOLD 
+        else:
+            dessus = BLACK
         #Transparence
         fond = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
         pygame.draw.rect(fond,(0,0,0,150),(0,0,self.rect.width,self.rect.height), border_radius=10)
