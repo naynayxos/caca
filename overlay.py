@@ -8,8 +8,10 @@ def overlay_HUD():
     police=pygame.font.Font("ressource/police.ttf", 40)
     hudmode= pygame.image.load("ressource/HUD_mc_V2.png").convert_alpha()
     hudinventaire=pygame.image.load("ressource/HUD_inventaire.png").convert_alpha()
+    coeur= pygame.image.load("ressource/coeur_hp.png").convert_alpha()
+    coeur= pygame.transform.scale(coeur, (125,125))
     inventaire=False  #Ferme de base
-    return police, hudmode, hudinventaire, inventaire
+    return police, hudmode, hudinventaire, inventaire, coeur
 
 def onventaire(fenetre, inventaire, hudinventaire, LARGEUR, HAUTEUR):
     if inventaire:
@@ -113,3 +115,40 @@ def arme_overlay(fenetre, joueur, image, HAUTEUR, present):
     imgarme = image.get(joueur.arsenal)
     if imgarme is not None:
         fenetre.blit(imgarme, (posx, posy))
+
+
+
+#creation de la barre de vie
+def hud_life(fenetre, LARGEUR, HAUTEUR, hp_cur, hp_max, police, coeur):
+    #données
+    x= LARGEUR -570
+    y= 50
+    Cyan= (122,252,194)
+    Gris= (60,70,70)
+    #création de rectangle
+    rect_nb_totale= 25
+    rect_H= 50
+    rect_L= 15
+    rect_positif= int((hp_cur/hp_max)*rect_nb_totale)
+
+    texte_sante= police.render("LIFE", True, Cyan)
+    fenetre.blit(texte_sante,(x, y-40))
+
+    for i in range(rect_nb_totale):
+        rect_pos_x= x+ (i*(rect_L+ 5))
+        if i< rect_positif:
+            couleur= Cyan
+        else:
+            couleur = Gris
+
+        pygame.draw.rect(fenetre, couleur,(rect_pos_x, y, rect_L, rect_H))
+    
+    L_tt= rect_nb_totale*(rect_L+5)
+    #Ligne horizontale
+    pygame.draw.line(fenetre, Cyan,(x, y + rect_H+5), (x+L_tt+55, y+rect_H+5),2)
+    #texte pourcentage
+    texte_hp = police.render(f"{int(hp_cur)}/{int(hp_max)}", True, Cyan)
+    fenetre.blit(texte_hp,(x + L_tt-50, y + rect_H+10))
+    #coeur affichage
+    fenetre.blit(coeur,(x+L_tt-32, y-40))
+

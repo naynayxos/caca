@@ -31,6 +31,9 @@ class Joueur:
         self.delaytir = 12
         self.munition = 30
         self.arsenal = 1
+        #vie
+        self.hpmax=100
+        self.hp= self.hpmax
 
     def changerarme(self, num):
         self.arsenal = num
