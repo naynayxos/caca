@@ -34,11 +34,12 @@ class Joueur:
         #vie
         self.hpmax=100
         self.hp= self.hpmax
+        self.god=0
 
     def changerarme(self, num):
         self.arsenal = num
     
-    def updatetir(self, carte, objets):
+    def updatetir(self, carte, objets, monstres):
         objetcasse = [] #Liste obj casse pour le serveur
         #Coultdown arme
         if self.vitessetir > 0:
@@ -47,21 +48,27 @@ class Joueur:
         tiractuelle = []
         for balle in self.tir:
             balle.deplacer()
-            #Verifie que la balle a percuter
-            touche = balle.collisionoupas(carte, objets)
-            if not touche:
-                tiractuelle.append(balle)
-            elif touche != "mur": 
-                #Touche objet destructible
-                if not hasattr(touche, 'hp'):
-                    touche.hp = 3
-                touche.hp = touche.hp -1
-                if touche.hp <= 0:
-                    #La caisse se casse et se transforme en muni
-                    touche.type = "munition"
-                    touche.texture = texture("munition.png", (90,90), transparente=True)
-                    touche.hitbox = touche.rect
-                    objetcasse.append(touche)
+            touche_monstre= False
+            for m in monstres:
+                if not m.mort and balle.rect.colliderect(m.rect):
+                        m.take_damage(10)
+                        touche_monstre= True
+            if not touche_monstre :
+                #Verifie que la balle a percuter
+                touche = balle.collisionoupas(carte, objets)
+                if not touche:
+                    tiractuelle.append(balle)
+                elif touche != "mur": 
+                    #Touche objet destructible
+                    if not hasattr(touche, 'hp'):
+                        touche.hp = 3
+                    touche.hp = touche.hp -1
+                    if touche.hp <= 0:
+                        #La caisse se casse et se transforme en muni
+                        touche.type = "munition"
+                        touche.texture = texture("munition.png", (90,90), transparente=True)
+                        touche.hitbox = touche.rect
+                        objetcasse.append(touche)
         self.tir = tiractuelle
         return objetcasse
 

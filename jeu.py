@@ -7,6 +7,7 @@ import socket
 import pickle
 import filtre
 import overlay
+import monstre
 import random  
 import math
 
@@ -22,6 +23,7 @@ ecran = pygame.display.Info()
 pygame.display.set_caption("D-RED")
 
 def lancer(ecran, mode = "solo", ip=None):
+    monstre.init_texture()
     LARGEUR, HAUTEUR = ecran.get_size()
     clock = pygame.time.Clock()
     #Asset musque ..
@@ -160,6 +162,8 @@ def lancer(ecran, mode = "solo", ip=None):
     #Joueur
     px, py = int(salles[0].centerx), int(salles[0].centery)
     joueur = Joueur(px*ZOOM+(ZOOM//2), py*ZOOM+(ZOOM//2))
+    #lst de monstres
+    monstres=[]
 
     #Variable interface
     font = pygame.font.Font("ressource/police.ttf", 24)
@@ -193,6 +197,11 @@ def lancer(ecran, mode = "solo", ip=None):
                 #Ouvre inventaire
                 if event.key == pygame.K_LCTRL and not enpause:
                     inventaire= not inventaire
+                 #Larry spawn
+                if event.key == pygame.K_l:
+                    m= monstre.Monstre(joueur.rect.centerx+100, joueur.rect.centery, 3, 100)
+                    monstres.append(m)
+                    print(f"Larry va te toucher la nuit")
                 #Allume ou eteindre lampe
                 if event.key == pygame.K_h:
                     joueur.lumiereallumee = not joueur.lumiereallumee
@@ -211,6 +220,8 @@ def lancer(ecran, mode = "solo", ip=None):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: #Clic gauche
                     click = True
+           
+
        
         if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
@@ -238,11 +249,24 @@ def lancer(ecran, mode = "solo", ip=None):
             if keys[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]:
                 joueur.tirer()
             #Deplacement balle et acutalisation caisse cassé
-            casse = joueur.updatetir(carte, objets)
+            casse = joueur.updatetir(carte, objets, monstres)
             if casse:
                 for c in casse:
                     #On dit au réseau que ca devient munition
                     actionmap[f"{c.rect.x}-{c.rect.y}"] = "M"
+            #Deplacement provisoire
+            for m in monstres:
+                if joueur.god>0:
+                    joueur.god -=1
+                if not m.mort :
+                    kx, ky = m.deplacement(joueur.rect.centerx, joueur.rect.centery)
+                    m.collision(kx, ky, carte, objets)
+                    #le monstre touche le joueur
+                    if m.rect.colliderect(joueur.rect) and joueur.god<=0:
+                        joueur.hp -=10
+                        joueur.god= 60
+                
+                        
 
         #Reseaux
         if connect:
@@ -373,8 +397,16 @@ def lancer(ecran, mode = "solo", ip=None):
             if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
                 pos_y = fenetre_y + obj.rect.height
                 adessiner.append((pos_y, obj.texture, (fenetre_x, fenetre_y)))
-
-        #Dessin balles
+        #Dessin monstres
+        for m in monstres:
+            if not m.mort:
+                fenetre_x = m.rect.x + camera_x
+                fenetre_y = m.rect.y + camera_y
+                if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
+                    pos_y = fenetre_y + m.rect.height
+                    adessiner.append((pos_y, m.texture, (fenetre_x, fenetre_y)))
+        
+        #Dessin balle
         for tir in joueur.tir:
             ix = tir.rect.x + camera_x
             iy = tir.rect.y + camera_y
