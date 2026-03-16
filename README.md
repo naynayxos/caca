@@ -62,9 +62,9 @@ Voila le jeu sera fonctionnel
 
 |  Arme  |  Principe  |
 |--------|------------|
-| '1: Pistolet' | Tir précis, balle par balle |
-| '2: Fusil à pompe' | 5 balles d'affiler, cadence lente |
-| '3: Fusil d'assaut' | Tir rapide, recule |
+| `1: Pistolet` | Tir précis, balle par balle |
+| `2: Fusil à pompe` | 5 balles d'affiler, cadence lente |
+| `3: Fusil d'assaut` | Tir rapide, recule |
 
 ## Munition
     Il est possible de gagner en munition en
