@@ -1,11 +1,11 @@
-## JEU DRED
+# JEU DRED
     Jeu de survie avec une vue du dessus developpé
     Python avec Pygame en 60FPS. Vous Explorerez des donjons 
     Générés aléatoirement, il faut survivre
     Dans l'obscurité ; tirez sur tout ce qui bouge
     Seul ou à plusieurs dans le mode multijoueur.
 
-## Presentation
+# Presentation
     DRED est un jeu d'exploration dans
     Lequel vous incarnez un personnage armé qui 
     Doit explorer des salles réparties sur 6 
@@ -19,7 +19,7 @@
     en tant qu'hebergeur ou en tant 
     Que joueur d'une partie en ligne. 
 
-## Prerequis
+# Prerequis
 Pour pouvoir lancer ce jeu vous avez besoins :
 - De Python 
 - De Pygame
@@ -37,7 +37,9 @@ git clone https://github.com/floriansfo/SAE.git
 python demarrage.py
 ```
 
-## Commande
+Voila le jeu sera fonctionnel
+
+# Commande
 |  Touche  |  Action  | 
 |----------|----------|
 | `Z ou ↑` |  Avancer |
@@ -53,8 +55,8 @@ python demarrage.py
 | `Ctrl gauche` | Ouvrir/Fermer inventaire |
 | `Echap` | Pause |
 
-## Gameplay
-### Arme
+# Gameplay
+## Arme
     Trois armes sont possible dans 
     Le jeu avec les touches 1, 2 et 3:
 
@@ -64,31 +66,31 @@ python demarrage.py
 | '2: Fusil à pompe' | 5 balles d'affiler, cadence lente |
 | '3: Fusil d'assaut' | Tir rapide, recule |
 
-### Munition
+## Munition
     Il est possible de gagner en munition en
     Marchant dessus ou en cassant des caisses,
     cela rajoutera 15 balle à l'inventaire.
 
-### Vie
+## Vie
     Le joueur commence a 100HP et pourra perdre
     de la vie lors d'une attaque avec des monstres.
 
-### Endurance
+## Endurance
     Le joueur possede un sprint limité, visible
     Grâce a la barre d'endurance, elle se recharge
     Quand le joueur ne bouge pas.
 
-### Eclairage
+## Eclairage
     Le joueur possede une lampe qu'il peut allumer
     Avec la touche H, pour voir les monstres, il 
     Peut activer le mode combat pour les voirs.
 
-### Ascenceur
+## Ascenceur
     Le jeu a un ascenceur pour naviguer entre les 
     Etages, il peut y acceder en appuyant sur la 
     Touche E lorsqu'il est dessus.
 
-### Multijoueur
+## Multijoueur
     2 mode multijoueur:
         Mode Hote:
             Se connecte, il genere la carte et
@@ -97,7 +99,7 @@ python demarrage.py
             Se connecte, en saisissant l'IP
             Le serveur envoie la carte au joueur
 
-### Options
+## Options
     Notre jeu, permet de régler la résolution ainsi
     Que le volume de la musique mais aussi d'acceder
     Au touche permettant de commander le jeu
