@@ -35,6 +35,13 @@ class Joueur:
         self.hpmax=100
         self.hp= self.hpmax
         self.god=0
+        #Son
+        self.sonpistolet = pygame.mixer.Sound("ressource/GunshotRevolver_BW.57313.wav")
+        self.sonpompe = pygame.mixer.Sound("ressource/STCR2_PHONK_Kit_One_Shot_TurboCharger_Gunshot (1) (mp3cut.net).mp3")
+        self.sonassaut = pygame.mixer.Sound("ressource/GunshotRifle_BW.57890.wav")
+        self.sonpistolet.set_volume(0.6)
+        self.sonpompe.set_volume(0.6)
+        self.sonassaut.set_volume(0.6)
 
     def changerarme(self, num):
         self.arsenal = num
@@ -81,6 +88,7 @@ class Joueur:
             debuty = self.rect.centery - math.sin(pangle)*20
             if self.arsenal == 1:
                 #Pistolet Classique
+                self.sonpistolet.play()
                 p = Arme(debutx, debuty, self.angleactuel)
                 self.tir.append(p)
                 self.vitessetir = 15
@@ -88,6 +96,7 @@ class Joueur:
             elif self.arsenal == 2:
                 #Fusil a pompe: 2 balle
                 if self.munition>=2:
+                    self.sonpompe.play()
                     #Tire 5 balle avec angles
                     for pompe in [-16, -8, 0, 8, 16]:
                         p = Arme(debutx, debuty, self.angleactuel+pompe)
@@ -95,6 +104,7 @@ class Joueur:
                     self.vitessetir = 40
                     self.munition = self.munition - 2
             elif self.arsenal == 3:
+                self.sonassaut.play()
                 #Fusil d'assaut: rapide avec recul entre -5 et 5 deg
                 recul = random.uniform(-5, 5)
                 p = Arme(debutx, debuty, self.angleactuel+recul)

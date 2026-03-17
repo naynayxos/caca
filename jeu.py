@@ -201,6 +201,10 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     actionmap = {} #Reactualise quand caisse cassé et mun recup
     #Mort du joueur
     mort = False
+    #Son munition
+    sonmun = pygame.mixer.Sound("ressource/ESM_Handful_of_Bullet_Shell_Drop_2_Gun_Military_Pistol_Shot_Machine_Rifle_Metal.wav")
+    sonmun.set_volume(0.8)
+
     running = True
     while running:
         LARGEUR, HAUTEUR = ecran.get_size()
@@ -288,6 +292,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             for obj in objets:
                 if obj.type == "munition" and joueur.rect.colliderect(obj.rect):
                     joueur.munition = joueur.munition + 15
+                    sonmun.play()
                     key = f"{obj.rect.x}-{obj.rect.y}"
                     actionmap[key] = "S"
                     modifs_etage.setdefault(niveau_actuel, {})[key] = "S"
