@@ -4,6 +4,7 @@ import jeu
 import option
 import dl
 import rejoindre
+import sauvegarde
 
 pygame.init()
 
@@ -209,7 +210,12 @@ while running:
                 retourmenu()
             #Charger Partie
             elif button.action == "load":
-                print("Charger Partie")
+                save = sauvegarde.charger()
+                if save:
+                    pygame.mixer.music.fadeout(500)
+                    dl.ecran_chargement(fenetre, WIDTH, HEIGHT)
+                    jeu.lancer(fenetre, mode="solo", save=save)
+                    retourmenu()
             #Options
             elif button.action == "options":
                 print("Options")

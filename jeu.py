@@ -10,6 +10,7 @@ import overlay
 import monstre
 import random  
 import math
+import sauvegarde
 
 from prerequis import *
 from prerequis import texture
@@ -22,7 +23,7 @@ pygame.init()
 ecran = pygame.display.Info()
 pygame.display.set_caption("D-RED")
 
-def lancer(ecran, mode = "solo", ip=None):
+def lancer(ecran, mode = "solo", ip=None, save=None):
     monstre.init_texture()
     LARGEUR, HAUTEUR = ecran.get_size()
     clock = pygame.time.Clock()
@@ -117,7 +118,10 @@ def lancer(ecran, mode = "solo", ip=None):
         socket_jeu.setblocking(False)
     else:
         #Partie solo
-        partie = random.randint(0, 999999)
+        if save:
+            partie = save["seed"]
+        else:
+            partie = random.randint(0, 999999)
         random.seed(partie)
         carte, salles, pos = generemap()
         random.seed(partie)
@@ -154,14 +158,33 @@ def lancer(ecran, mode = "solo", ip=None):
     surascenceur = False #Pour savoir si on peut interagir avec l'ascenseur
 
     #Dictionnaire pour sauvegarder les etages déjà visités
-    sauvegarde_etage =  {}
+    sauvegarde_etage = {}
     niveau_actuel = 1
+    modifs_etage = {}
     #Sauvegarde niveau 1 pour pas le perdre
     sauvegarde_etage[1] = {"carte":carte,"salles":salles,"objets":objets}
 
     #Joueur
     px, py = int(salles[0].centerx), int(salles[0].centery)
     joueur = Joueur(px*ZOOM+(ZOOM//2), py*ZOOM+(ZOOM//2))
+
+    #Restauration depuis une sauvegarde
+    if save:
+        modifs_etage = {int(k): v for k, v in save["modifs"].items()}
+        joueur.rect.centerx = save["joueur"]["x"]
+        joueur.rect.centery = save["joueur"]["y"]
+        joueur.hp = save["joueur"]["hp"]
+        joueur.munition = save["joueur"]["munition"]
+        joueur.arsenal = save["joueur"]["arsenal"]
+        joueur.endurance = save["joueur"]["endurance"]
+        objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(1, {}))
+        sauvegarde_etage[1]["objets"] = objets
+        if save["niveau_actuel"] != 1:
+            niveau_actuel = save["niveau_actuel"]
+            random.seed(partie + niveau_actuel)
+            carte, salles, pos = generemap()
+            objets = generer_objets(carte, salles)
+            objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(niveau_actuel, {}))
     #lst de monstres
     monstres=[]
 
@@ -261,8 +284,9 @@ def lancer(ecran, mode = "solo", ip=None):
             for obj in objets:
                 if obj.type == "munition" and joueur.rect.colliderect(obj.rect):
                     joueur.munition = joueur.munition + 15
-                    #On dit au reseau qu'elle sont supp
-                    actionmap[f"{obj.rect.x}-{obj.rect.y}"] = "S"
+                    key = f"{obj.rect.x}-{obj.rect.y}"
+                    actionmap[key] = "S"
+                    modifs_etage.setdefault(niveau_actuel, {})[key] = "S"
                 else:
                     objetsreste.append(obj)
             objets = objetsreste #Met a jour les objets restants
@@ -273,8 +297,9 @@ def lancer(ecran, mode = "solo", ip=None):
             casse = joueur.updatetir(carte, objets, monstres)
             if casse:
                 for c in casse:
-                    #On dit au réseau que ca devient munition
-                    actionmap[f"{c.rect.x}-{c.rect.y}"] = "M"
+                    key = f"{c.rect.x}-{c.rect.y}"
+                    actionmap[key] = "M"
+                    modifs_etage.setdefault(niveau_actuel, {})[key] = "M"
             #Deplacement provisoire
             for m in monstres:
                 if joueur.god>0:
@@ -517,6 +542,7 @@ def lancer(ecran, mode = "solo", ip=None):
                         random.seed(partie+etage_choisi)
                         carte, salles, pos = generemap()
                         objets = generer_objets(carte, salles)
+                        objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(etage_choisi, {}))
                     #Repositionne le joueur sur la nouvelle carte a l"ascenseur
                     start = salles[0]
                     joueurx = start.centerx * ZOOM + (ZOOM//2)
@@ -539,7 +565,7 @@ def lancer(ecran, mode = "solo", ip=None):
                         "salles": salles,
                         "objets": objets,
                     }
-                    print("Partie sauvegardée")
+                    sauvegarde.sauvegarder(partie, niveau_actuel, modifs_etage, joueur)
                 elif action == "OPTIONS":
                     ecran = option.option_menu(ecran, LARGEUR, HAUTEUR)
                     LARGEUR, HAUTEUR = ecran.get_size()
