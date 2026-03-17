@@ -172,6 +172,8 @@ def lancer(ecran, mode = "solo", ip=None):
     armeprec = joueur.arsenal
     glissement = 0
     actionmap = {} #Reactualise quand caisse cassé et mun recup
+    #Mort du joueur
+    mort = False
     running = True
     while running:
         LARGEUR, HAUTEUR = ecran.get_size()
@@ -220,8 +222,27 @@ def lancer(ecran, mode = "solo", ip=None):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: #Clic gauche
                     click = True
-           
-
+        
+        #Le joueur est mort
+        if mort:
+            ecran.fill((0,0,0))
+            textemort = font.render("GAME OVER", True, (255,0,0))
+            ecran.blit(textemort, textemort.get_rect(center=(LARGEUR//2, HAUTEUR//2-100)))
+            btn_menu = pygame.Rect(0,0,200,60)
+            btn_menu.center(LARGEUR//2,HAUTEUR//2+50)
+            mouse_pos = pygame.mouse.get_pos()
+            if btn_menu.collidepoint(mouse_pos):
+                couleur = (100,100,100)
+            else:
+                couleur = (50,50,50)
+            pygame.draw.rect(ecran, couleur, btn_menu)
+            textebtn = font.render("MENU", True,(255,255,255))
+            ecran.blit(textebtn, textebtn.get_rect(center=btn_menu.center))
+            if click and btn_menu.collidepoint(mouse_pos):
+                return
+            pygame.display.flip()
+            clock.tick(60)
+            continue
        
         if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
@@ -265,8 +286,8 @@ def lancer(ecran, mode = "solo", ip=None):
                     if m.rect.colliderect(joueur.rect) and joueur.god<=0:
                         joueur.hp -=10
                         joueur.god= 60
-                
-                        
+                        if joueur.hp <= 0:
+                            mort = True                  
 
         #Reseaux
         if connect:
@@ -572,6 +593,9 @@ def lancer(ecran, mode = "solo", ip=None):
             overlay.hud_life(ecran, LARGEUR, HAUTEUR, joueur.hp, joueur.hpmax, police, coeur)
         pygame.display.flip()
         clock.tick(60)
+
+        if monstre.mort == True:
+            ecran.fill(0,0)
     
     if socket_jeu:
         socket_jeu.close()  
