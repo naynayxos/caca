@@ -1,12 +1,13 @@
 import pygame
 #mode combat
 m_combat =False
-
+combat = False
 
 def activation_mc(event):
-    global m_combat
+    global m_combat, combat
     if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
         m_combat= not m_combat
+        combat = True
 
 
 def filtre(fenetre):

@@ -40,7 +40,7 @@ class Objet:
             surface.blit(self.texture, (fenetre_x, fenetre_y))
         return fenetre_y+self.rect.height
 
-def generer_objets(grille, salles):
+def generer_objets(grille, salles, multi = 1.0):
     objets = []
     #Dictionnaire des types et probabilité d'affichage des objets
     types = [{'nom': 'caisse.png', 'type': 'meuble', 'proba': 0.2},
@@ -63,15 +63,12 @@ def generer_objets(grille, salles):
                         cotes.append("droite")
                     if grille[y][x-1] == MUR:
                         cotes.append("gauche")
-                    if cotes and random.random()<0.2:
+                    if cotes and random.random()<(0.2*multi):
                         #Objet au hasard
                         t = random.choice(types)
                         #Verifie proba d'apparition
                         if random.random() < t['proba']:
-                            if t['type'] != 'munition':
-                                taillemun = (ZOOM//2, ZOOM//2)
-                            else:
-                                taillemun = (ZOOM, ZOOM)
+                            taillemun = (ZOOM//2, ZOOM//2)
                             cotebon = random.choice(cotes)
                             #Creation de l'objet
                             obj = Objet(x*ZOOM, y*ZOOM, t['nom'], t['type'], size=taillemun, cote=cotebon)

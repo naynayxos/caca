@@ -27,6 +27,10 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     monstre.init_texture()
     LARGEUR, HAUTEUR = ecran.get_size()
     clock = pygame.time.Clock()
+    if mode != "solo":
+        multi = 5.0
+    else:
+        multi = 3.0
     #Asset musque ..
     police, hudmode, hudinventaire, inventaire, coeur =overlay.overlay_HUD()
     pygame.mixer.music.load("ressource/explo.mp3")
@@ -69,7 +73,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 socket_jeu.recv(1024)
                 #Generation objet avec seed similaire
                 random.seed(partie)
-                objets = generer_objets(carte, salles)
+                objets = generer_objets(carte, salles,multi)
                 idjoueur = "HOTE"
                 print("Carte enregistré avec succes")
             except Exception as e:
@@ -110,7 +114,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 #Application de la seed pour avoir meme objet
                 partie = donneesmap["seed"]
                 random.seed(partie)
-                objets = generer_objets(carte, salles)
+                objets = generer_objets(carte, salles,multi)
             except Exception as e:
                 print(f"Erreur de chargement de la carte: {e}")
                 return
@@ -125,7 +129,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         random.seed(partie)
         carte, salles, pos = generemap()
         random.seed(partie)
-        objets = generer_objets(carte, salles)
+        objets = generer_objets(carte, salles,multi)
 
     #Chargement assets
     img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))
@@ -183,7 +187,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             niveau_actuel = save["niveau_actuel"]
             random.seed(partie + niveau_actuel)
             carte, salles, pos = generemap()
-            objets = generer_objets(carte, salles)
+            objets = generer_objets(carte, salles, multi)
             objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(niveau_actuel, {}))
     #lst de monstres
     monstres=[]
@@ -252,7 +256,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             textemort = font.render("GAME OVER", True, (255,0,0))
             ecran.blit(textemort, textemort.get_rect(center=(LARGEUR//2, HAUTEUR//2-100)))
             btn_menu = pygame.Rect(0,0,200,60)
-            btn_menu.center(LARGEUR//2,HAUTEUR//2+50)
+            btn_menu.center = (LARGEUR//2,HAUTEUR//2+50)
             mouse_pos = pygame.mouse.get_pos()
             if btn_menu.collidepoint(mouse_pos):
                 couleur = (100,100,100)
@@ -319,15 +323,23 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             #position balle
             balle = "vide"
             if len(joueur.tir) > 0:
-                balle = "_".join([f"{int(b.rect.x)}={int(b.rect.y)}" for b in joueur.tir])
+                balle = "_".join([f"{int(b.rect.x)}={int(b.rect.y)}={b.dx:.2f}={b.dy:.2f}" for b in joueur.tir])
             #Modification de la map sauvegarde
             modifmap = "vide"
             if len(actionmap) > 0:
                 modifmap = "_".join([f"{coordonne}={etat}" for coordonne, etat in actionmap.items()])
                 actionmap.clear() #Vide liste
+            monstree = "vide"
+            if len(monstres)>0:
+                monstree = "_".join([f"{int(m.rect.x)}={int(m.rect.y)}={int(m.mort)}" for m in monstres])
             try:
+                #Mort ou pas
+                if mort:
+                    etatmort = 1
+                else:
+                    etatmort = 0
                 #Envoie la position du joueur
-                message = f"{joueur.rect.centerx},{joueur.rect.centery},{niveau_actuel},{joueur.angle},{joueur.animation},{balle},{modifmap}\n"
+                message = f"{joueur.rect.centerx},{joueur.rect.centery},{niveau_actuel},{joueur.angle},{joueur.animation},{balle},{modifmap},{etatmort},{monstree}\n"
                 socket_jeu.send(message.encode('utf-8'))
             except BlockingIOError: pass
             except Exception as e: pass
@@ -376,7 +388,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                                         if j:
                                             jid, jinfos = j.split(':', 1)
                                             v = jinfos.split(',')
-                                            if len(v) >= 7:
+                                            if len(v) >= 9:
                                                 #Si nouveau joueur on l'ajoute au dico
                                                 if jid not in joueursup:
                                                     joueursup[jid] = Joueur(int(v[0]), int(v[1]))
@@ -387,12 +399,23 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                                                 autre.etage = int(v[2])
                                                 autre.angle = float(v[3])
                                                 autre.animation = int(v[4])
+                                                autre.mort = bool(int(v[7]))
                                                 #Lecture des balles
                                                 autre.balles_reseau = []
                                                 if v[5] != "vide":
                                                     for b in v[5].split('_'):
-                                                        ballex, balley = b.split('=')
-                                                        autre.balles_reseau.append((int(ballex), int(balley)))
+                                                        parti = b.split('=')
+                                                        if len(parti)==4:
+                                                            ballex,balley,balledx,balledy = parti
+                                                            autre.balles_reseau.append((int(ballex), int(balley),float(balledx),float(balledy)))
+                                                #Monstres
+                                                autre.monstres_reseau = []
+                                                if v[8] != "vide":
+                                                    for m in v[8].split('_'):
+                                                        parts = m.split('=')
+                                                        if len(parts)==3:
+                                                            mx,my,mmort = parts
+                                                            autre.monstres_reseau.append((int(mx),int(my), int(mmort)))
                         except Exception as e:
                             pass
                         buffer = paquetss[-1].encode('utf-8')
@@ -470,22 +493,39 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             for idjoueur, autre in joueursup.items():
                 if getattr(autre, "etage", 1) == niveau_actuel:
                     #Dessine ses balles
+                    if hasattr(autre, "monstres_reseau"):
+                        for mx,my,mmort in autre.monstres_reseau:
+                            if not mmort:
+                                ix = mx + camera_x
+                                iy = my + camera_y
+                                if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
+                                    pos_y = iy + 200
+                                    adessiner.append((pos_y, monstre.larry, (ix,iy)))
+                    #Dessine ses balles
                     if hasattr(autre, "balles_reseau"):
-                        for ballex, balley in autre.balles_reseau:
+                        for ballex, balley, balledx, balledy in autre.balles_reseau:
                             ix = ballex+camera_x
                             iy = balley + camera_y
                             if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
                                 #On crée la balle
-                                img_balle = pygame.Surface((10,10), pygame.SRCALPHA)
-                                pygame.draw.circle(img_balle,(255,200,0),(5,5),5)
-                                adessiner.append((iy+10, img_balle, (ix,iy)))
+                                anglevol = math.atan2(balledy,balledx)
+                                angle = -math.degrees(anglevol)
+                                balleangle = pygame.transform.rotate(img_ballevol, angle)
+                                rectballe = balleangle.get_rect(center=(ix,iy))
+                                adessiner.append((rectballe.bottom, balleangle, rectballe.topleft))
                     #Dessine son perso
                     xjoueur2 = autre.rect.centerx + camera_x
                     yjoueur2 = autre.rect.centery + camera_y
                     #On dessine que si il est visible
                     if -100<xjoueur2<LARGEUR and -100<yjoueur2<HAUTEUR:
-                        img_autrejoueur = animationjoueur[autre.animation]
-                        img_autrejoueur = pygame.transform.rotate(img_autrejoueur, autre.angle)
+                        if not getattr(autre, "mort", False):
+                            #Joueur vivant
+                            img_autrejoueur = animationjoueur[autre.animation]
+                            img_autrejoueur = pygame.transform.rotate(img_autrejoueur, autre.angle)
+                        else:
+                            img_autrejoueur = animationjoueur[0].copy()
+                            img_autrejoueur = pygame.transform.rotate(img_autrejoueur, 90)
+                            img_autrejoueur.set_alpha(20)
                         rect_aff = img_autrejoueur.get_rect(center=(xjoueur2, yjoueur2))
                         adessiner.append((rect_aff.bottom, img_autrejoueur, rect_aff.topleft))
 
@@ -541,7 +581,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                     else:
                         random.seed(partie+etage_choisi)
                         carte, salles, pos = generemap()
-                        objets = generer_objets(carte, salles)
+                        objets = generer_objets(carte, salles, multi)
                         objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(etage_choisi, {}))
                     #Repositionne le joueur sur la nouvelle carte a l"ascenseur
                     start = salles[0]
@@ -578,6 +618,18 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 elif action == "QUITTER":
                     pygame.quit()
                     sys.exit()
+        
+        #Musique mode combat
+        if filtre.combat:
+            if filtre.m_combat:
+                #Active nouvelle sic
+                pygame.mixer.music.load("ressource/horrorfight.mp3")
+                pygame.mixer.music.play(-1)
+            else:
+                #Met ancienne sic
+                pygame.mixer.music.load("ressource/explo.mp3")
+                pygame.mixer.music.play(-1)
+            filtre.combat = False
 
         #Overlay
         if not enpause:
@@ -619,9 +671,6 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             overlay.hud_life(ecran, LARGEUR, HAUTEUR, joueur.hp, joueur.hpmax, police, coeur)
         pygame.display.flip()
         clock.tick(60)
-
-        if monstre.mort == True:
-            ecran.fill(0,0)
     
     if socket_jeu:
         socket_jeu.close()  
