@@ -91,3 +91,6 @@ class Monstre:
         if self.hp_cur<= 0:
             self.hp_cur= 0
             self.mort= True
+            self.loot = random.randint(50, 100) #loot aléatoire entre 50 et 100 pièces
+        else:
+            self.loot = 0

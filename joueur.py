@@ -42,6 +42,17 @@ class Joueur:
         self.sonpistolet.set_volume(0.6)
         self.sonpompe.set_volume(0.6)
         self.sonassaut.set_volume(0.6)
+        #Oxygne
+        self.oxygenemax = 21600
+        self.oxygene = self.oxygenemax
+        #Boutique
+        self.pieces = 0
+        self.arsenal_achete = {1: True}
+        self.achatjour = 0
+        self.niveaudebloque = {1}
+        self.possedelampe = True
+        self.pile = 3600
+        self.pilemax = 3600
 
     def changerarme(self, num):
         self.arsenal = num
@@ -196,3 +207,32 @@ class Joueur:
                     self.rect.bottom = mur.top
                 if ky <0:
                     self.rect.top = mur.bottom
+
+    def toogle_lumiere(self):
+        if not self.possedelampe:
+            return  
+        if self.pile <= 0:
+            self.lumiereallumee = False
+            return
+        self.lumiereallumee = not self.lumiereallumee
+    
+    def updatelampe(self, mode_combat= False):
+        if self.lumiereallumee and self.possedelampe and not mode_combat:
+            self.pile -= 1
+            if self.pile <= 0:
+                self.pile = 0
+                self.lumiereallumee = False
+    
+    def updateoxygene(self, niveau_actuel):
+        if niveau_actuel != 0:
+            if self.oxygene > 0:
+                self.oxygene -= 1
+            else:
+                if not hasattr(self, 'timer'):
+                    self.timer = 0
+                self.timer += 1
+                if self.timer >= 60:  # Perte de vie toutes les secondes
+                    self.timer = 0
+                    self.hp -= 5
+        else:
+            self.oxygene = self.oxygenemax

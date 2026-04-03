@@ -56,7 +56,7 @@ def endurance(fenetre, joueur, course, img, HAUTEUR, LARGEUR, fondu):
     hauteur = 20
     #Position sur l'ecran
     posecranx = LARGEUR - 250
-    posecrany = HAUTEUR - 80
+    posecrany = HAUTEUR - 65
     #Surface pour la barre
     barre = pygame.Surface((300, 60), pygame.SRCALPHA)
     posx = 10
@@ -116,6 +116,35 @@ def arme_overlay(fenetre, joueur, image, HAUTEUR, present):
     if imgarme is not None:
         fenetre.blit(imgarme, (posx, posy))
 
+def lampe(fenetre, joueur, police, HAUTEUR):
+    x = 10
+    y = HAUTEUR - 230
+    if not joueur.possedelampe:
+        texte = police.render("Pas de lampe", True, (150,15,0,150))
+        fenetre.blit(texte, (x, y))
+        return
+    p = int((joueur.pile / joueur.pilemax) * 100)
+    if p > 50:
+        couleur = (100,220,100)
+    elif p > 20:
+        couleur = (255,180,30)
+    else:
+        couleur = (220,50,50)
+    if joueur.lumiereallumee:
+        etat = "ON"
+    else:
+        etat = "OFF"
+    texte = police.render(f"Lampe: {etat} ({p}%)", True, couleur)
+    fenetre.blit(texte, (x, y))
+    largeur = 120
+    hauteur = 8
+    barre = pygame.Surface((largeur, hauteur), pygame.SRCALPHA)
+    pygame.draw.rect(barre, (40,40,40,180), (0, 0, largeur, hauteur), border_radius=4)
+    largeurbarre = int(p/100 * largeur)
+    if largeurbarre > 0:
+        pygame.draw.rect(barre, (*couleur, 220), (0, 0, largeurbarre, hauteur), border_radius=4)
+    pygame.draw.rect(barre, (200,200,200,180), (0, 0, largeur, hauteur), 1, border_radius=4)
+    fenetre.blit(barre, (x, y+28))
 
 
 #creation de la barre de vie
@@ -152,3 +181,57 @@ def hud_life(fenetre, LARGEUR, HAUTEUR, hp_cur, hp_max, police, coeur):
     #coeur affichage
     fenetre.blit(coeur,(x+L_tt-32, y-40))
 
+def oxygene(fenetre, joueur, police, LARGEUR, HAUTEUR):
+    largeur = 200
+    hauteur = 16
+    x = LARGEUR //2 - largeur//2
+    y = HAUTEUR - 60
+    CYAN = (122,252,194)
+    oxy = max(0, joueur.oxygene/joueur.oxygenemax)
+    #Texte O²
+    texteoxy = police.render("O²", True, (180,180,255))
+    fenetre.blit(texteoxy, (x-45, y-4))
+    #Surface pour la barre
+    barre = pygame.Surface((largeur, hauteur), pygame.SRCALPHA)
+    #Fond de la barre
+    pygame.draw.rect(barre, (30,30,60,180), (0, 0, largeur, hauteur), border_radius=6)
+    #Remplissage de la barre
+    if oxy > 0.3:
+        couleur = (50,120,220, 220)
+    elif oxy > 0.1:
+        couleur = (220,150,30, 220)
+    else:
+        couleur = (200,30,30, 220)
+    largeurbarre = int(oxy * largeur)
+    if largeurbarre > 0:
+        pygame.draw.rect(barre, couleur, (0, 0, largeurbarre, hauteur), border_radius=6)
+    #Bordure de la barre
+    pygame.draw.rect(barre, (180,180,255,200), (0, 0, largeur, hauteur), 2, border_radius=6)
+    fenetre.blit(barre, (x, y))
+    if oxy <= 0 and pygame.time.get_ticks() % 800 < 400: #Clignote quand à sec
+        alerte = police.render("ASPHYXIE", True, (255,50,50))
+        fenetre.blit(alerte, alerte.get_rect(center=(LARGEUR//2, y-35)))
+
+def horloge(fenetre, police, heure, LARGEUR):
+    DUREE = 28800 #Durée d'une journée en secondes
+    heure = min(heure, DUREE)
+    heurejeu = 6+ (heure / DUREE) * 14 #Commence à 6h
+    heures = int(heurejeu)
+    minutes = int((heurejeu - heures) * 60)
+    #Couleur du texte qui change en fonction de l'heure
+    restant = DUREE - heure
+    if restant > 7200:
+        couleur = (255,220,100)
+    elif restant > 2880:
+        couleur = (255,140,30)
+    else:
+        couleur = (255,50,50)
+    texte = police.render(f"{heures:02d}:{minutes:02d}", True, couleur)
+    texte_rect = texte.get_rect(topright=(LARGEUR-20, 60))
+    fond = pygame.Surface((texte_rect.width + 20, texte_rect.height + 10), pygame.SRCALPHA)
+    fond.fill((0,0,0,140))
+    fenetre.blit(fond, (texte_rect.x - 10, texte_rect.y - 5))
+    fenetre.blit(texte, texte_rect)
+    if heurejeu >= 18 and pygame.time.get_ticks() % 1000 < 500: #Clignote quand il fait nuit
+        alerte = police.render("RENTRER AU VAISSEAU !", True, (255,50,50))
+        fenetre.blit(alerte, alerte.get_rect(center=(LARGEUR//2, 30)))

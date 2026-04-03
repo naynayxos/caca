@@ -11,13 +11,17 @@ import monstre
 import random  
 import math
 import sauvegarde
+import nuit
+import boutique
 
 from prerequis import *
 from prerequis import texture
 from lumiere import Lumiere
 from cartegen import generemap, generer_objets
+from vaisseau import generer_vaisseau
 from joueur import Joueur
 from arme import Arme
+from vaisseau import LIT, BOUTIQUE
 
 pygame.init()
 ecran = pygame.display.Info()
@@ -126,10 +130,16 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             partie = save["seed"]
         else:
             partie = random.randint(0, 999999)
-        random.seed(partie)
-        carte, salles, pos = generemap()
-        random.seed(partie)
-        objets = generer_objets(carte, salles,multi)
+        chargeetage = 0
+        if save:
+            chargeetage = save["niveau_actuel"]
+        if chargeetage == 0:
+            carte, salles, pos = generer_vaisseau()
+            objets = generer_objets(carte, [], 0)
+        else:
+            random.seed(partie+chargeetage)
+            carte, salles, pos = generemap()
+            objets = generer_objets(carte, salles,multi)
 
     #Chargement assets
     img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))
@@ -139,6 +149,9 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
     img_munition = texture("munitionoverlay.png", (80,80), transparente=True)
     img_ballevol = texture("balle.png", (45,45), transparente=True)
+    img_lit = texture("lit.png", (ZOOM+1, ZOOM+1))
+    img_boutique = texture("boutique.png", (ZOOM+1, ZOOM+1))
+    img_piece = texture("piece.png", (40,40), transparente=True)
     img_arme = {
         1: texture("pistolet.png",(250,80), transparente= True),
         2: texture("pompe.png",(250,80), transparente= True),
@@ -149,6 +162,11 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     texture("joueurgauche.png",(100,100), transparente=True),
     texture("joueurdroit.png",(100,100), transparente=True)
     ]
+    img_etoile = pygame.Surface((ZOOM+1,ZOOM+1))
+    img_etoile.fill((5,5,20))
+    pygame.draw.circle(img_etoile, (255,255,255), (ZOOM//2,ZOOM//2), 2)
+    img_flamme = pygame.Surface((ZOOM+1,ZOOM+1))
+    img_flamme.fill((255,69,0))
     #Calque de lumiere
     lumieremarche = Lumiere(LARGEUR, HAUTEUR)
 
@@ -156,20 +174,29 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     menu = ascenseur.Ascenseur(LARGEUR, HAUTEUR)
     #Menu pause
     menupause = pause.EcranPause(LARGEUR, HAUTEUR)
+    #Menu sommeil
+    menusommeil = nuit.Sommeil(LARGEUR, HAUTEUR)
+    menuboutique = boutique.Boutique(LARGEUR, HAUTEUR)
+    surboutique = False
+    boutiqueouverte = False
+    piecessol = []
+    jour = 1
+    heure = 0
 
     enpause = False
     ouvertemenu = False
     surascenceur = False #Pour savoir si on peut interagir avec l'ascenseur
 
+
     #Dictionnaire pour sauvegarder les etages déjà visités
     sauvegarde_etage = {}
-    niveau_actuel = 1
+    niveau_actuel = 0
     modifs_etage = {}
     #Sauvegarde niveau 1 pour pas le perdre
-    sauvegarde_etage[1] = {"carte":carte,"salles":salles,"objets":objets}
+    sauvegarde_etage[0] = {"carte":carte,"salles":salles,"objets":objets,"pos": pos}
 
     #Joueur
-    px, py = int(salles[0].centerx), int(salles[0].centery)
+    px, py = int(pos[0]), int(pos[1])
     joueur = Joueur(px*ZOOM+(ZOOM//2), py*ZOOM+(ZOOM//2))
 
     #Restauration depuis une sauvegarde
@@ -181,9 +208,9 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         joueur.munition = save["joueur"]["munition"]
         joueur.arsenal = save["joueur"]["arsenal"]
         joueur.endurance = save["joueur"]["endurance"]
-        objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(1, {}))
-        sauvegarde_etage[1]["objets"] = objets
-        if save["niveau_actuel"] != 1:
+        objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(0, {}))
+        sauvegarde_etage[0]["objets"] = objets
+        if save["niveau_actuel"] != 0:
             niveau_actuel = save["niveau_actuel"]
             random.seed(partie + niveau_actuel)
             carte, salles, pos = generemap()
@@ -216,13 +243,26 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         if 0 <= casex < LARGEURMAP and 0 <= casey < HAUTEURMAP:
             if carte[casey][casex] == ASCENCEUR:
                 surascenceur = True
+        #Vérifie si le joueur est sur un lit
+        surlit = False
+        if 0 <= casex < LARGEURMAP and 0 <= casey < HAUTEURMAP:
+            if carte[casey][casex] == LIT:
+                surlit = True
+        #Vérifie si le joueur est sur la boutique
+        surboutique = False
+        if 0 <= casex < LARGEURMAP and 0 <= casey < HAUTEURMAP:
+            if carte[casey][casex] == BOUTIQUE:
+                surboutique = True
+        if not surboutique:
+            boutiqueouverte = False
         #Si on s'eloigne de l'ascenseur alors on ferme le menu
         if not surascenceur:
             ouvertemenu = False
         #Evenement clavier
         click = False
         for event in pygame.event.get():
-            filtre.activation_mc(event)
+            if niveau_actuel != 0:
+                filtre.activation_mc(event)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -231,16 +271,15 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 if event.key == pygame.K_LCTRL and not enpause:
                     inventaire= not inventaire
                  #Larry spawn
-                if event.key == pygame.K_l:
+                if event.key == pygame.K_l and niveau_actuel != 0:
                     m= monstre.Monstre(joueur.rect.centerx+100, joueur.rect.centery, 3, 100)
                     monstres.append(m)
                     print(f"Larry va te toucher la nuit")
                 #Allume ou eteindre lampe
                 if event.key == pygame.K_h:
-                    joueur.lumiereallumee = not joueur.lumiereallumee
-                    if (joueur.lumiereallumee or not joueur.lumiereallumee) and filtre.m_combat:
+                    joueur.toogle_lumiere()
+                    if joueur.lumiereallumee and filtre.m_combat:
                         filtre.m_combat = False
-                        joueur.lumiereallumee = True
                 #Pause ou ferme
                 if event.key == pygame.K_ESCAPE:
                     if ouvertemenu:
@@ -250,9 +289,22 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 #Menu ascenceur
                 if event.key == pygame.K_e and surascenceur:
                     ouvertemenu = not ouvertemenu
+                if event.key == pygame.K_e and surlit and niveau_actuel==0:
+                    jour = menusommeil.nuit(ecran, joueur, jour)
+                    heure = 0
+                    joueur.achatjour = 0
+                    joueur.oxygene = joueur.oxygenemax
+                if event.key == pygame.K_e and surboutique and niveau_actuel == 0:
+                    boutiqueouverte = not boutiqueouverte
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: #Clic gauche
                     click = True
+                if boutiqueouverte:
+                    achat = menuboutique.clique(pygame.mouse.get_pos(), bouton_boutique, joueur)
+        
+        #Mode combat desactive quand tire pas
+        if niveau_actuel!=0:
+            filtre.updatemode()
         
         #Le joueur est mort
         if mort:
@@ -280,12 +332,13 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             #Deplacement joueur et collision
             kx, ky = joueur.deplacer(keys, len(animationjoueur))
             joueur.collision(kx, ky, carte, objets)
+            joueur.updatelampe(filtre.m_combat)
             #Changement arme
             if keys[pygame.K_1]:
                 joueur.changerarme(1)
-            if keys[pygame.K_2]:
+            if keys[pygame.K_2] and joueur.arsenal_achete.get(2, False):
                 joueur.changerarme(2)
-            if keys[pygame.K_3]:
+            if keys[pygame.K_3] and joueur.arsenal_achete.get(3, False):
                 joueur.changerarme(3)
             #Ramasser munition
             objetsreste = []
@@ -299,8 +352,21 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                 else:
                     objetsreste.append(obj)
             objets = objetsreste #Met a jour les objets restants
+            #Ramasser piece
+            piecesreste = []
+            for p in piecessol:
+                if joueur.rect.colliderect(p["rect"]):
+                    joueur.pieces += p["valeur"]
+                else:
+                    piecesreste.append(p)
+            piecessol = piecesreste #Met a jour les pieces restantes
+            #Monstre loot piece
+            for m in monstres:
+                if m.mort and getattr(m, "loot", 0) > 0:
+                    piecessol.append({"rect": pygame.Rect(m.rect.centerx-20, m.rect.centery-20, 40, 40), "valeur": m.loot})
+                    m.loot = 0 #Evite de looter plusieurs fois
             #Tir
-            if keys[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]:
+            if (keys[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]) and niveau_actuel != 0:
                 joueur.tirer()
             #Deplacement balle et acutalisation caisse cassé
             casse = joueur.updatetir(carte, objets, monstres)
@@ -321,7 +387,27 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                         joueur.hp -=10
                         joueur.god= 60
                         if joueur.hp <= 0:
-                            mort = True                  
+                            mort = True
+                            joueur.possedelampe = False
+                            joueur.lumiereallumee = False
+            #Oxygene
+            joueur.updateoxygene(niveau_actuel)
+            if joueur.hp <=0 and not mort:
+                mort = True        
+            #Heure
+            if niveau_actuel != 0:
+                heure +=1
+                if heure >= 28800:
+                    if not hasattr(joueur, "time"):
+                        jour.time = 0
+                    jour.time +=1
+                    if joueur.time >= 120:
+                        joueur.time = 0
+                        joueur.hp = joueur.hp - 5
+                        if joueur.hp <= 0:
+                            mort = True
+                            joueur.possedelampe = False
+                            joueur.lumiereallumee = False
 
         #Reseaux
         if connect:
@@ -444,6 +530,14 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                         ecran.blit(img_sol, (screen_x,screen_y))
                     elif case == ASCENCEUR and img_ascenseur is not None:
                         ecran.blit(img_ascenseur, (screen_x, screen_y))
+                    elif case == ETOILE:
+                        ecran.blit(img_etoile, (screen_x, screen_y))
+                    elif case == FLAMME:
+                        ecran.blit(img_flamme, (screen_x,screen_y))
+                    elif case == LIT:
+                        ecran.blit(img_lit, (screen_x,screen_y))
+                    elif case == BOUTIQUE:
+                        ecran.blit(img_boutique, (screen_x, screen_y))
         
         #Liste de chosses a dessiner apres le sol
         adessiner = []
@@ -471,6 +565,14 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
                 pos_y = fenetre_y + obj.rect.height
                 adessiner.append((pos_y, obj.texture, (fenetre_x, fenetre_y)))
+        
+        #Dessin piece au sol
+        for p in piecessol:
+            px = p["rect"].x + camera_x
+            py = p["rect"].y + camera_y
+            if -50<px<LARGEUR and -50<py<HAUTEUR:
+                ecran.blit(img_piece, (px, py))
+
         #Dessin monstres
         for m in monstres:
             if not m.mort:
@@ -551,7 +653,8 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             ecran.blit(i[1], i[2]) #image, position
 
         #Effet Lumiere quand activé
-        lumieremarche.appliquer(ecran, joueur, filtre.m_combat)
+        if niveau_actuel != 0:
+            lumieremarche.appliquer(ecran, joueur, filtre.m_combat)
 
         #Message sur ascenseur
         if surascenceur and not ouvertemenu:
@@ -563,38 +666,66 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             fond.set_alpha(150)
             ecran.blit(fond, (txt_rect.x-10, txt_rect.y-5))
             ecran.blit(txt, txt_rect)
+        #Message pour le lit
+        if surlit and not ouvertemenu and niveau_actuel == 0:
+            tx = font.render("Appuyer sur E pour dormir", True, (255,255,255))
+            tx_rect = tx.get_rect(center=(LARGEUR//2, HAUTEUR-50))
+            fond = pygame.Surface((tx_rect.width+20, tx_rect.height+10), pygame.SRCALPHA)
+            fond.fill((0,0,0,150))
+            ecran.blit(fond,(tx_rect.x-10, tx_rect.y-5))
+            ecran.blit(tx, tx_rect)
+        #Message pour la boutique
+        if surboutique and not boutiqueouverte and niveau_actuel == 0:
+            tx = font.render("Appuyer sur E pour entrer", True, (255,255,255))
+            tx_rect = tx.get_rect(center=(LARGEUR//2, HAUTEUR-50))
+            fond = pygame.Surface((tx_rect.width+20, tx_rect.height+10), pygame.SRCALPHA)
+            fond.fill((0,0,0,150))
+            ecran.blit(fond,(tx_rect.x-10, tx_rect.y-5))
+            ecran.blit(tx, tx_rect)
 
         #Menu ascenseur
         if ouvertemenu:
-            menu_boutons = menu.dessiner(ecran, niveau_actuel)
+            menu_boutons = menu.dessiner(ecran, niveau_actuel, joueur)
             if click:
                 mouse_pos = pygame.mouse.get_pos()
                 etage_choisi = menu.clique(mouse_pos, menu_boutons)
-                if etage_choisi:
+                if etage_choisi is not None:
                     sauvegarde_etage[niveau_actuel] = {
                         "carte": carte,
                         "salles": salles,
                         "objets": objets,
+                        "pos": pos,
                     }
                     menu.ecran_charge(ecran, img_load, etage_choisi)
-                    niveau_actuel = etage_choisi
                     #Si l'étage a déjà été visité, on charge la sauvegarde
                     if etage_choisi in sauvegarde_etage:
                         carte = sauvegarde_etage[etage_choisi]["carte"]
                         salles = sauvegarde_etage[etage_choisi]["salles"]
                         objets = sauvegarde_etage[etage_choisi]["objets"]
+                        pos = sauvegarde_etage[etage_choisi]["pos"]
                     else:
-                        random.seed(partie+etage_choisi)
-                        carte, salles, pos = generemap()
-                        objets = generer_objets(carte, salles, multi)
-                        objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(etage_choisi, {}))
+                        if etage_choisi == 0:
+                            carte, salles, pos = generer_vaisseau()
+                            objets = generer_objets(carte, [], 0)
+                        elif 1<= etage_choisi <=6:
+                            random.seed(partie+etage_choisi)
+                            carte, salles, pos = generemap()
+                            objets = generer_objets(carte, salles, multi)
+                            objets = sauvegarde.appliquer_modifs(objets, modifs_etage.get(etage_choisi, {}))
+                    niveau_actuel = etage_choisi
                     #Repositionne le joueur sur la nouvelle carte a l"ascenseur
-                    start = salles[0]
-                    joueurx = start.centerx * ZOOM + (ZOOM//2)
-                    joueury = start.centery * ZOOM + (ZOOM//2)
+                    joueurx = pos[0] * ZOOM + (ZOOM//2)
+                    joueury = pos[1] * ZOOM + (ZOOM//2)
                     joueur.rect.center = (joueurx, joueury)
                     ouvertemenu = False
                     pygame.event.clear()
+
+        #Menu boutique
+        bouton_boutique = []
+        if boutiqueouverte:
+            bouton_boutique = menuboutique.dessiner(ecran, joueur)
+            if click:
+                menuboutique.clique(pygame.mouse.get_pos(), bouton_boutique, joueur)
 
         #Menu pause
         if enpause:
@@ -626,33 +757,36 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         
         #Musique mode combat
         if filtre.combat:
-            if filtre.m_combat:
-                #Active nouvelle sic
-                pygame.mixer.music.load("ressource/horrorfight.mp3")
-                pygame.mixer.music.play(-1)
-            else:
-                #Met ancienne sic
-                pygame.mixer.music.load("ressource/explo.mp3")
-                pygame.mixer.music.play(-1)
+            if niveau_actuel != 0:
+                if filtre.m_combat:
+                    #Active nouvelle sic
+                    pygame.mixer.music.load("ressource/horrorfight.mp3")
+                    pygame.mixer.music.play(-1)
+                else:
+                    #Met ancienne sic
+                    pygame.mixer.music.load("ressource/explo.mp3")
+                    pygame.mixer.music.play(-1)
             filtre.combat = False
 
         #Overlay
         if not enpause:
             #Barre endurance
             #Il court ?
-            touche = pygame.key.get_pressed()
-            mouvement = touche[pygame.K_LEFT] or touche[pygame.K_RIGHT] or touche[pygame.K_UP] or touche[pygame.K_DOWN] or touche[pygame.K_z] or touche[pygame.K_s] or touche[pygame.K_q] or touche[pygame.K_d]
-            course = mouvement and touche[pygame.K_LSHIFT] and joueur.endurance > 0
-            #Apparition fondu de la barre
-            if not course and joueur.endurance >= joueur.maxcourse:
-                fondu = max(0, fondu-5)
-            else:
-                fondu = min(255, fondu+25)                
-            joueurimage = animationjoueur[joueur.animation]
-            overlay.endurance(ecran, joueur, course, joueurimage, HAUTEUR, LARGEUR, fondu)
+            if ouvertemenu == False: #Pas de barre si menu ouvert
+                touche = pygame.key.get_pressed()
+                mouvement = touche[pygame.K_LEFT] or touche[pygame.K_RIGHT] or touche[pygame.K_UP] or touche[pygame.K_DOWN] or touche[pygame.K_z] or touche[pygame.K_s] or touche[pygame.K_q] or touche[pygame.K_d]
+                course = mouvement and touche[pygame.K_LSHIFT] and joueur.endurance > 0
+                #Apparition fondu de la barre
+                if not course and joueur.endurance >= joueur.maxcourse:
+                    fondu = max(0, fondu-5)
+                else:
+                    fondu = min(255, fondu+25)                
+                joueurimage = animationjoueur[joueur.animation]
+                overlay.endurance(ecran, joueur, course, joueurimage, HAUTEUR, LARGEUR, fondu)
         
             #Compteur munition
             overlay.munition(ecran, joueur, police, img_munition, HAUTEUR)
+            overlay.lampe(ecran, joueur, font, HAUTEUR)
 
             #Arme overlay
             #Si changement d'arme on glisse image
@@ -674,6 +808,11 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         overlay.mode_texte(ecran, filtre.m_combat, enpause, police, hudmode, inventaire)
         if not enpause :
             overlay.hud_life(ecran, LARGEUR, HAUTEUR, joueur.hp, joueur.hpmax, police, coeur)
+            overlay.horloge(ecran, font, heure, LARGEUR)
+            if niveau_actuel != 0:
+                overlay.oxygene(ecran, joueur, font, LARGEUR, HAUTEUR)
+            piece_hud = font.render(f"Pieces: {joueur.pieces}", True, (255,200,50))
+            ecran.blit(piece_hud, piece_hud.get_rect(topright=(LARGEUR-20, 20)))
         pygame.display.flip()
         clock.tick(60)
     

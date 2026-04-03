@@ -10,6 +10,9 @@ VIDE = 2
 MUR = 1
 SOL = 0
 ASCENCEUR = 3
+ETOILE = 4
+FLAMME = 5
+LIT = 7
 #Couleur
 NUIT = (15,15,25)
 #assets
