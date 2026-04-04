@@ -25,7 +25,12 @@ class Objet:
         elif cote == "gauche":
             self.rect.left = x
             self.rect.centery = y +ZOOM//2
-        self.texture=texture(name,size,transparente=True)
+        if not hasattr(Objet, 'texture_cache'):
+            Objet.texture_cache = {}
+        clecache = (name, size)
+        if clecache not in Objet.texture_cache:
+            Objet.texture_cache[clecache] = texture(name,size,transparente=True)
+        self.texture=Objet.texture_cache[clecache]
         self.type = type  
         #Reduction hitbox si c'est un meuble
         if type == "meuble":
@@ -88,12 +93,7 @@ def c_horizontal(grille, x1,x2,y):
 #generation map
 def generemap():
     #Carte rempli de vide
-    grille = []
-    for y in range(HAUTEURMAP):
-        ligne = []
-        for x in range(LARGEURMAP):
-            ligne.append(VIDE)
-        grille.append(ligne)
+    grille = [[VIDE for i in range(LARGEURMAP)] for k in range(HAUTEURMAP)]
     salles=[]
     distance_min =7
     distance_max = 10#Dstance entre les salles
@@ -156,10 +156,7 @@ def generemap():
     grille[py][px] = ASCENCEUR
     
     #On fait copir de la grille pour cree mur
-    grille_fin = []
-    for row in grille:
-        nouvligne = row[:]
-        grille_fin.append(nouvligne)
+    grille_fin = [row[:] for row in grille]
     for y in range(1, HAUTEURMAP-1):
         for x in range(1, LARGEURMAP-1):
             if grille[y][x]==VIDE:

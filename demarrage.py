@@ -1,12 +1,14 @@
 import pygame
 import sys
 import time
+import assets
 
 pygame.init()
 #Fenetre en plein ecran
 fenetre = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
 #taille ecran actuelle
 WIDTH, HEIGHT = fenetre.get_size()
+assets.ASSETS=assets.charger_assets(WIDTH, HEIGHT)
 pygame.display.set_caption("D-RED")
 #Cacher la souris
 pygame.mouse.set_visible(False)
@@ -42,7 +44,7 @@ def demarrage():
         pygame.display.flip()
         #Quand il est affiché
         if arrive >=1.0:
-            time.sleep(2) #On laisse pendant 2 sec apres l'affichage du logo 
+            pygame.time.delay(1000) #On laisse pendant 2 sec apres l'affichage du logo 
             return
 demarrage()
 #Remet la souris

@@ -113,4 +113,4 @@ class Ascenseur:
         texte_rect = texte.get_rect(center=(self.L//2, self.H//2))
         ecran.blit(texte, texte_rect)
         pygame.display.flip()
-        pygame.time.delay(800)  #Temps de chargement de 0.8 secondes
+        pygame.event.pump()  # Traiter les événements pour éviter que la fenêtre ne se fige

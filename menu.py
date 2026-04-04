@@ -1,5 +1,6 @@
 import pygame
 import webbrowser
+import assets
 import jeu
 import option
 import dl
@@ -17,7 +18,7 @@ pygame.display.set_caption("D-RED")
 pygame.display.set_icon(pygame.image.load("ressource/logo.png"))
 
 #Musique de fond
-pygame.mixer.music.load("ressource/Musique.mp3")
+pygame.mixer.music.load(assets.ASSETS['musique_menu'])
 pygame.mixer.music.play(-1) #Musique en boucle
 
 #image de fond

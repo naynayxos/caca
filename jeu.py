@@ -13,6 +13,7 @@ import math
 import sauvegarde
 import nuit
 import boutique
+import assets
 
 from prerequis import *
 from prerequis import texture
@@ -37,7 +38,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         multi = 3.0
     #Asset musque ..
     police, hudmode, hudinventaire, inventaire, coeur =overlay.overlay_HUD()
-    pygame.mixer.music.load("ressource/explo.mp3")
+    pygame.mixer.music.load(assets.ASSETS['musique_jeu'])
     pygame.mixer.music.play(-1)
 
     #Serveur
@@ -141,27 +142,19 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             carte, salles, pos = generemap()
             objets = generer_objets(carte, salles,multi)
 
-    #Chargement assets
-    img_sol = texture("sol.png",(ZOOM+1,ZOOM+1))
-    img_ascenseur = texture("ascenseur.png",(ZOOM+1,ZOOM+1))
-    img_murface = texture("murface.png", (ZOOM+1, ZOOM+1))
-    img_murtop = texture("murtop.png", (ZOOM+1, ZOOM+1))
-    img_load = texture("Chargement.png", (LARGEUR, HAUTEUR))
-    img_munition = texture("munitionoverlay.png", (80,80), transparente=True)
-    img_ballevol = texture("balle.png", (45,45), transparente=True)
-    img_lit = texture("lit.png", (ZOOM+1, ZOOM+1))
-    img_boutique = texture("boutique.png", (ZOOM+1, ZOOM+1))
-    img_piece = texture("piece.png", (40,40), transparente=True)
-    img_arme = {
-        1: texture("pistolet.png",(250,80), transparente= True),
-        2: texture("pompe.png",(250,80), transparente= True),
-        3: texture("fusil.png",(250,80), transparente= True)
-    }
-    animationjoueur = [
-    texture("joueur.png",(100,100), transparente=True),
-    texture("joueurgauche.png",(100,100), transparente=True),
-    texture("joueurdroit.png",(100,100), transparente=True)
-    ]
+    #Charger les textures
+    img_sol = assets.ASSETS['img_sol']
+    img_ascenseur = assets.ASSETS['img_ascenseur']
+    img_murface = assets.ASSETS['img_murface']
+    img_murtop = assets.ASSETS['img_murtop']
+    img_load = assets.ASSETS['img_load']
+    img_munition = assets.ASSETS['img_munition']
+    img_ballevol = assets.ASSETS['img_ballevol']
+    img_lit = assets.ASSETS['img_lit']
+    img_boutique = assets.ASSETS['img_boutique']
+    img_piece = assets.ASSETS['img_piece']
+    img_arme = assets.ASSETS['img_arme']
+    animationjoueur = assets.ASSETS['animationjoueur']
     img_etoile = pygame.Surface((ZOOM+1,ZOOM+1))
     img_etoile.fill((5,5,20))
     pygame.draw.circle(img_etoile, (255,255,255), (ZOOM//2,ZOOM//2), 2)
@@ -229,8 +222,9 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     #Mort du joueur
     mort = False
     #Son munition
-    sonmun = pygame.mixer.Sound("ressource/ESM_Handful_of_Bullet_Shell_Drop_2_Gun_Military_Pistol_Shot_Machine_Rifle_Metal.wav")
+    sonmun = assets.ASSETS['son_munition']
     sonmun.set_volume(0.8)
+    pygame.time.delay(500)
 
     running = True
     while running:
@@ -518,45 +512,46 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         camera_y = (HAUTEUR//2)-joueur.rect.centery
 
         #Dessin sol
+        minx = max(0, -camera_x//ZOOM-1)
+        maxx = min(LARGEURMAP, (-camera_x+LARGEUR)//ZOOM+2)
+        miny = max(0, -camera_y//ZOOM-1)
+        maxy = min(HAUTEURMAP, (-camera_y+HAUTEUR)//ZOOM+2)
         ecran.fill((0,0,0))
-        for y in range(HAUTEURMAP):
-            for x in range(LARGEURMAP):
+        for y in range(miny, maxy):
+            for x in range(minx, maxx):
                 case = carte[y][x]
                 screen_x = x * ZOOM + camera_x
-                screen_y= y*ZOOM+camera_y
-                #Dessine que ce qui est visible
-                if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y<HAUTEUR:
-                    if case == SOL and img_sol is not None:
-                        ecran.blit(img_sol, (screen_x,screen_y))
-                    elif case == ASCENCEUR and img_ascenseur is not None:
-                        ecran.blit(img_ascenseur, (screen_x, screen_y))
-                    elif case == ETOILE:
-                        ecran.blit(img_etoile, (screen_x, screen_y))
-                    elif case == FLAMME:
-                        ecran.blit(img_flamme, (screen_x,screen_y))
-                    elif case == LIT:
-                        ecran.blit(img_lit, (screen_x,screen_y))
-                    elif case == BOUTIQUE:
-                        ecran.blit(img_boutique, (screen_x, screen_y))
+                screen_y = y * ZOOM + camera_y
+                if case == SOL and img_sol is not None:
+                    ecran.blit(img_sol, (screen_x,screen_y))
+                elif case == ASCENCEUR and img_ascenseur is not None:
+                    ecran.blit(img_ascenseur, (screen_x, screen_y))
+                elif case == ETOILE:
+                    ecran.blit(img_etoile, (screen_x, screen_y))
+                elif case == FLAMME:
+                    ecran.blit(img_flamme, (screen_x,screen_y))
+                elif case == LIT:
+                    ecran.blit(img_lit, (screen_x,screen_y))
+                elif case == BOUTIQUE:
+                    ecran.blit(img_boutique, (screen_x, screen_y))
         
         #Liste de chosses a dessiner apres le sol
         adessiner = []
 
         #Dessin murs
-        for y in range(HAUTEURMAP):
-            for x in range(LARGEURMAP):
-                case = carte[y][x]
-                if case == MUR:
-                    screen_x = x * ZOOM + camera_x
-                    screen_y= y*ZOOM+camera_y
-                    if -ZOOM<screen_x<LARGEUR and -ZOOM< screen_y< HAUTEUR:
-                        img_mur = img_murtop
-                        #On regarsde si il y a du sol en dessous
-                        if y+1<HAUTEURMAP and (carte[y+1][x]==SOL or carte[y+1][x] == ASCENCEUR):
-                            img_mur = img_murface
-                        if img_mur:
-                            pos_y = screen_y + ZOOM
-                            adessiner.append((pos_y, img_mur,(screen_x,screen_y)))
+        for y in range(miny, maxy):
+            for x in range(minx, maxx):
+                        case = carte[y][x]
+                        if case == MUR:
+                            screen_x = x * ZOOM + camera_x
+                            screen_y = y * ZOOM + camera_y
+                            img_mur = img_murtop
+                            #On regarsde si il y a du sol en dessous
+                            if y+1<HAUTEURMAP and (carte[y+1][x]==SOL or carte[y+1][x] == ASCENCEUR):
+                                img_mur = img_murface
+                            if img_mur:
+                                pos_y = screen_y + ZOOM
+                                adessiner.append((pos_y, img_mur,(screen_x,screen_y)))
                         
         #Dessin objets
         for obj in objets:
@@ -717,6 +712,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                     joueurx = pos[0] * ZOOM + (ZOOM//2)
                     joueury = pos[1] * ZOOM + (ZOOM//2)
                     joueur.rect.center = (joueurx, joueury)
+                    pygame.time.delay(500)
                     ouvertemenu = False
                     pygame.event.clear()
 
@@ -760,11 +756,11 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             if niveau_actuel != 0:
                 if filtre.m_combat:
                     #Active nouvelle sic
-                    pygame.mixer.music.load("ressource/horrorfight.mp3")
+                    pygame.mixer.music.load(assets.ASSETS['musique_combat'])
                     pygame.mixer.music.play(-1)
                 else:
                     #Met ancienne sic
-                    pygame.mixer.music.load("ressource/explo.mp3")
+                    pygame.mixer.music.load(assets.ASSETS['musique_jeu'])
                     pygame.mixer.music.play(-1)
             filtre.combat = False
 
