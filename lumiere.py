@@ -42,6 +42,7 @@ class Lumiere:
         self.cone = cone(CONE_PORTEE, CONE_ANGLE, (255, 240, 200))
         self.angle = None
         self.rotation = None
+        self.masque = pygame.Surface((self.largeur,self.hauteur), pygame.SRCALPHA)
 
     def redimenssione(self, largeur, hauteur):
         self.largeur = largeur
@@ -60,15 +61,13 @@ class Lumiere:
         if mode_combat:
             return
         #Active lampe apres generation map
-        ex, ey = self.largeur, self.hauteur
-        cx,cy = ex//2, ey//2
-        masque = pygame.Surface((ex,ey), pygame.SRCALPHA)
-        masque.fill((*NUIT, NUIT_ALPHA))
+        cx,cy = self.largeur//2, self.hauteur//2
+        self.masque.fill((*NUIT, NUIT_ALPHA))
         if joueur.lumiereallumee:
             cone = self.conerota(joueur.angleactuel)
             rectcone = cone.get_rect(center=(cx,cy))
             #BLEND_RGBA_SUB ca retire le maque noir
-            masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
-            masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
-            masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
-        ecran.blit(masque, (0,0))
+            self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
+            self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
+            self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
+        ecran.blit(self.masque, (0,0))

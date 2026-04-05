@@ -14,6 +14,8 @@ import sauvegarde
 import nuit
 import boutique
 import assets
+import reseau
+import affichage
 
 from prerequis import *
 from prerequis import texture
@@ -155,11 +157,8 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     img_piece = assets.ASSETS['img_piece']
     img_arme = assets.ASSETS['img_arme']
     animationjoueur = assets.ASSETS['animationjoueur']
-    img_etoile = pygame.Surface((ZOOM+1,ZOOM+1))
-    img_etoile.fill((5,5,20))
-    pygame.draw.circle(img_etoile, (255,255,255), (ZOOM//2,ZOOM//2), 2)
-    img_flamme = pygame.Surface((ZOOM+1,ZOOM+1))
-    img_flamme.fill((255,69,0))
+    img_etoile = assets.ASSETS['img_etoile']
+    img_flamme = assets.ASSETS['img_flamme']
     #Calque de lumiere
     lumieremarche = Lumiere(LARGEUR, HAUTEUR)
 
@@ -225,7 +224,8 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
     sonmun = assets.ASSETS['son_munition']
     sonmun.set_volume(0.8)
     pygame.time.delay(500)
-
+    #jeu fluide
+    t = 1/60.0
     running = True
     while running:
         LARGEUR, HAUTEUR = ecran.get_size()
@@ -324,7 +324,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
         if not ouvertemenu and not enpause:
             keys = pygame.key.get_pressed()
             #Deplacement joueur et collision
-            kx, ky = joueur.deplacer(keys, len(animationjoueur))
+            kx, ky = joueur.deplacer(keys, len(animationjoueur), t)
             joueur.collision(kx, ky, carte, objets)
             joueur.updatelampe(filtre.m_combat)
             #Changement arme
@@ -402,255 +402,12 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
                             mort = True
                             joueur.possedelampe = False
                             joueur.lumiereallumee = False
-
-        #Reseaux
+        #Reseau
         if connect:
-            #position balle
-            balle = "vide"
-            if len(joueur.tir) > 0:
-                balle = "_".join([f"{int(b.rect.x)}={int(b.rect.y)}={b.dx:.2f}={b.dy:.2f}" for b in joueur.tir])
-            #Modification de la map sauvegarde
-            modifmap = "vide"
-            if len(actionmap) > 0:
-                modifmap = "_".join([f"{coordonne}={etat}" for coordonne, etat in actionmap.items()])
-                actionmap.clear() #Vide liste
-            monstree = "vide"
-            if len(monstres)>0:
-                monstree = "_".join([f"{int(m.rect.x)}={int(m.rect.y)}={int(m.mort)}" for m in monstres])
-            try:
-                #Mort ou pas
-                if mort:
-                    etatmort = 1
-                else:
-                    etatmort = 0
-                #Envoie la position du joueur
-                message = f"{joueur.rect.centerx},{joueur.rect.centery},{niveau_actuel},{joueur.angle},{joueur.animation},{balle},{modifmap},{etatmort},{monstree}\n"
-                socket_jeu.send(message.encode('utf-8'))
-            except BlockingIOError: pass
-            except Exception as e: pass
-            #Reçoit la position de l'autre joueur
-            try:
-                data = socket_jeu.recv(4096)
-                if data:
-                    buffer += data
-                    if b"\n" in buffer:
-                        texte = buffer.decode('utf-8')
-                        paquetss = texte.split("\n")
-                        dernier = paquetss[-2] #Isole dernier paquet
-                        try:
-                            #On traite les anciens
-                            for paquet in paquetss[:-1]:
-                                if paquet:
-                                    listejoueur = paquet.split('|')
-                                    for j in listejoueur:
-                                        if j:
-                                            jid, jinfos = j.split(':', 1)
-                                            v = jinfos.split(',')
-                                            #Si modif de carte
-                                            if len(v)>=7 and v[6] != "vide":
-                                                for m in v[6].split('_'):
-                                                    coordonne, etat = m.split('=')
-                                                    mx, my = coordonne.split('-')
-                                                    mx, my = int(mx), int(my)
-                                                    #Maintenant on ajoute la modif sur notre map
-                                                    objsup = None
-                                                    for obj in objets:
-                                                        if obj.rect.x == mx and obj.rect.y == my:
-                                                            if etat == "S":
-                                                                objsup = obj
-                                                            elif etat == "M" and getattr(obj, "type", "") != "munition":
-                                                                #Caisse devient mun
-                                                                obj.type = "munition"
-                                                                obj.texture = texture("munition.png", (90,90), transparente=True)
-                                                                obj.hitbox = obj.rect
-                                                    #Objet ramassé
-                                                    if objsup in objets:
-                                                        objets.remove(objsup)
-                            #Met a jour pos des joueur
-                            if dernier:
-                                listejoueur = dernier.split('|')
-                                for j in listejoueur:
-                                        if j:
-                                            jid, jinfos = j.split(':', 1)
-                                            v = jinfos.split(',')
-                                            if len(v) >= 9:
-                                                #Si nouveau joueur on l'ajoute au dico
-                                                if jid not in joueursup:
-                                                    joueursup[jid] = Joueur(int(v[0]), int(v[1]))
-                                                #Met a jour stat
-                                                autre = joueursup[jid]
-                                                autre.rect.centerx = int(v[0])
-                                                autre.rect.centery = int(v[1])
-                                                autre.etage = int(v[2])
-                                                autre.angle = float(v[3])
-                                                autre.animation = int(v[4])
-                                                autre.mort = bool(int(v[7]))
-                                                #Lecture des balles
-                                                autre.balles_reseau = []
-                                                if v[5] != "vide":
-                                                    for b in v[5].split('_'):
-                                                        parti = b.split('=')
-                                                        if len(parti)==4:
-                                                            ballex,balley,balledx,balledy = parti
-                                                            autre.balles_reseau.append((int(ballex), int(balley),float(balledx),float(balledy)))
-                                                #Monstres
-                                                autre.monstres_reseau = []
-                                                if v[8] != "vide":
-                                                    for m in v[8].split('_'):
-                                                        parts = m.split('=')
-                                                        if len(parts)==3:
-                                                            mx,my,mmort = parts
-                                                            autre.monstres_reseau.append((int(mx),int(my), int(mmort)))
-                        except Exception as e:
-                            pass
-                        buffer = paquetss[-1].encode('utf-8')
-            except BlockingIOError: pass
-            except Exception: pass
+            buffer, objets, joueursup = reseau.connexion(socket_jeu, joueur, monstres, objets, actionmap, mort, niveau_actuel, buffer, joueursup)
 
-        #Suivi joueur
-        camera_x = (LARGEUR//2)-joueur.rect.centerx
-        camera_y = (HAUTEUR//2)-joueur.rect.centery
-
-        #Dessin sol
-        minx = max(0, -camera_x//ZOOM-1)
-        maxx = min(LARGEURMAP, (-camera_x+LARGEUR)//ZOOM+2)
-        miny = max(0, -camera_y//ZOOM-1)
-        maxy = min(HAUTEURMAP, (-camera_y+HAUTEUR)//ZOOM+2)
-        ecran.fill((0,0,0))
-        for y in range(miny, maxy):
-            for x in range(minx, maxx):
-                case = carte[y][x]
-                screen_x = x * ZOOM + camera_x
-                screen_y = y * ZOOM + camera_y
-                if case == SOL and img_sol is not None:
-                    ecran.blit(img_sol, (screen_x,screen_y))
-                elif case == ASCENCEUR and img_ascenseur is not None:
-                    ecran.blit(img_ascenseur, (screen_x, screen_y))
-                elif case == ETOILE:
-                    ecran.blit(img_etoile, (screen_x, screen_y))
-                elif case == FLAMME:
-                    ecran.blit(img_flamme, (screen_x,screen_y))
-                elif case == LIT:
-                    ecran.blit(img_lit, (screen_x,screen_y))
-                elif case == BOUTIQUE:
-                    ecran.blit(img_boutique, (screen_x, screen_y))
+        affichage.dessinerjeu(ecran, LARGEUR, HAUTEUR, carte, joueur, objets, piecessol, monstres, joueursup, niveau_actuel, connect, lumieremarche, filtre)
         
-        #Liste de chosses a dessiner apres le sol
-        adessiner = []
-
-        #Dessin murs
-        for y in range(miny, maxy):
-            for x in range(minx, maxx):
-                        case = carte[y][x]
-                        if case == MUR:
-                            screen_x = x * ZOOM + camera_x
-                            screen_y = y * ZOOM + camera_y
-                            img_mur = img_murtop
-                            #On regarsde si il y a du sol en dessous
-                            if y+1<HAUTEURMAP and (carte[y+1][x]==SOL or carte[y+1][x] == ASCENCEUR):
-                                img_mur = img_murface
-                            if img_mur:
-                                pos_y = screen_y + ZOOM
-                                adessiner.append((pos_y, img_mur,(screen_x,screen_y)))
-                        
-        #Dessin objets
-        for obj in objets:
-            fenetre_x = obj.rect.x + camera_x
-            fenetre_y = obj.rect.y + camera_y
-            if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
-                pos_y = fenetre_y + obj.rect.height
-                adessiner.append((pos_y, obj.texture, (fenetre_x, fenetre_y)))
-        
-        #Dessin piece au sol
-        for p in piecessol:
-            px = p["rect"].x + camera_x
-            py = p["rect"].y + camera_y
-            if -50<px<LARGEUR and -50<py<HAUTEUR:
-                ecran.blit(img_piece, (px, py))
-
-        #Dessin monstres
-        for m in monstres:
-            if not m.mort:
-                fenetre_x = m.rect.x + camera_x
-                fenetre_y = m.rect.y + camera_y
-                if -ZOOM<fenetre_x<LARGEUR and -ZOOM<fenetre_y<HAUTEUR:
-                    pos_y = fenetre_y + m.rect.height
-                    adessiner.append((pos_y, m.texture, (fenetre_x, fenetre_y)))
-        
-        #Dessin balle
-        for tir in joueur.tir:
-            ix = tir.rect.x + camera_x
-            iy = tir.rect.y + camera_y
-            if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
-                angleballe = math.atan2(tir.dy, tir.dx)
-                angle = -math.degrees(angleballe)
-                balleangle = pygame.transform.rotate(img_ballevol, angle)
-                rectballe = balleangle.get_rect(center=(ix,iy))
-                adessiner.append((rectballe.bottom, balleangle, rectballe.topleft))
-
-        img_autrejoueur = animationjoueur[joueur.animation]
-            
-        #Dessin autre joueur
-        if connect:
-            for idjoueur, autre in joueursup.items():
-                if getattr(autre, "etage", 1) == niveau_actuel:
-                    #Dessine ses balles
-                    if hasattr(autre, "monstres_reseau"):
-                        for mx,my,mmort in autre.monstres_reseau:
-                            if not mmort:
-                                ix = mx + camera_x
-                                iy = my + camera_y
-                                if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
-                                    pos_y = iy + 200
-                                    adessiner.append((pos_y, monstre.larry, (ix,iy)))
-                    #Dessine ses balles
-                    if hasattr(autre, "balles_reseau"):
-                        for ballex, balley, balledx, balledy in autre.balles_reseau:
-                            ix = ballex+camera_x
-                            iy = balley + camera_y
-                            if -ZOOM<ix<LARGEUR and -ZOOM<iy<HAUTEUR:
-                                #On crée la balle
-                                anglevol = math.atan2(balledy,balledx)
-                                angle = -math.degrees(anglevol)
-                                balleangle = pygame.transform.rotate(img_ballevol, angle)
-                                rectballe = balleangle.get_rect(center=(ix,iy))
-                                adessiner.append((rectballe.bottom, balleangle, rectballe.topleft))
-                    #Dessine son perso
-                    xjoueur2 = autre.rect.centerx + camera_x
-                    yjoueur2 = autre.rect.centery + camera_y
-                    #On dessine que si il est visible
-                    if -100<xjoueur2<LARGEUR and -100<yjoueur2<HAUTEUR:
-                        if not getattr(autre, "mort", False):
-                            #Joueur vivant
-                            img_autrejoueur = animationjoueur[autre.animation]
-                            img_autrejoueur = pygame.transform.rotate(img_autrejoueur, autre.angle)
-                        else:
-                            img_autrejoueur = animationjoueur[0].copy()
-                            img_autrejoueur = pygame.transform.rotate(img_autrejoueur, 90)
-                            img_autrejoueur.set_alpha(20)
-                        rect_aff = img_autrejoueur.get_rect(center=(xjoueur2, yjoueur2))
-                        adessiner.append((rect_aff.bottom, img_autrejoueur, rect_aff.topleft))
-
-        #Dessin joueur
-        img_joueur = animationjoueur[joueur.animation]
-        if img_joueur is not None:
-            joueurtourne = pygame.transform.rotate(img_joueur, joueur.angle)
-            rectaffiche = joueurtourne.get_rect()
-            xjoueur = joueur.rect.centerx + camera_x
-            yjoueur = joueur.rect.centery + camera_y
-            rectaffiche.center = (xjoueur, yjoueur)
-            pos_y= rectaffiche.bottom
-            adessiner.append((pos_y, joueurtourne, rectaffiche.topleft))
-
-        #Tri la liste a dessiner par ordre Y
-        adessiner.sort(key=lambda x: x[0])
-        for i in adessiner:
-            ecran.blit(i[1], i[2]) #image, position
-
-        #Effet Lumiere quand activé
-        if niveau_actuel != 0:
-            lumieremarche.appliquer(ecran, joueur, filtre.m_combat)
-
         #Message sur ascenseur
         if surascenceur and not ouvertemenu:
             txt = font.render("Appuyez sur E pour interagir", True, (255,255,255))
@@ -810,7 +567,7 @@ def lancer(ecran, mode = "solo", ip=None, save=None):
             piece_hud = font.render(f"Pieces: {joueur.pieces}", True, (255,200,50))
             ecran.blit(piece_hud, piece_hud.get_rect(topright=(LARGEUR-20, 20)))
         pygame.display.flip()
-        clock.tick(60)
+        t = clock.tick(60) / 1000.0
     
     if socket_jeu:
         socket_jeu.close()  

@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+import assets
 from prerequis import *
 from prerequis import obstacle, angletrace
 from arme import Arme
@@ -35,13 +36,10 @@ class Joueur:
         self.hpmax=100
         self.hp= self.hpmax
         self.god=0
-        #Son
-        self.sonpistolet = pygame.mixer.Sound("ressource/GunshotRevolver_BW.57313.wav")
-        self.sonpompe = pygame.mixer.Sound("ressource/STCR2_PHONK_Kit_One_Shot_TurboCharger_Gunshot (1) (mp3cut.net).mp3")
-        self.sonassaut = pygame.mixer.Sound("ressource/GunshotRifle_BW.57890.wav")
-        self.sonpistolet.set_volume(0.6)
-        self.sonpompe.set_volume(0.6)
-        self.sonassaut.set_volume(0.6)
+        #Sons
+        self.sonpistolet = assets.ASSETS['son_pistolet']
+        self.sonpompe = assets.ASSETS['son_pompe']
+        self.sonassaut = assets.ASSETS['son_assaut']
         #Oxygne
         self.oxygenemax = 21600
         self.oxygene = self.oxygenemax
@@ -123,15 +121,17 @@ class Joueur:
                 self.vitessetir = 5
                 self.munition = self.munition - 1
 
-    def deplacer(self, keys, nb_frame):
-        vitesse = self.marche
+    def deplacer(self, keys, nb_frame, t):
+        vitessecourse = self.course*60*t
+        vitessemarche = self.marche*60*t
+        vitesse = vitessemarche
         mouvement = False
         #Verifie si se déplace
         if keys[pygame.K_LEFT] or keys[pygame.K_q] or keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_UP] or keys[pygame.K_z] or keys[pygame.K_DOWN] or keys[pygame.K_s]:    
             mouvement = True
         #Sprint avec shift
         if mouvement == True and keys[pygame.K_LSHIFT] and self.endurance > 0:
-            vitesse = self.course
+            vitesse = vitessecourse
             self.endurance -= 0.5
         else:
             if self.endurance < self.maxcourse:
