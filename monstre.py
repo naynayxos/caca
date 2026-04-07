@@ -28,9 +28,9 @@ class Monstre:
         #Texture
         self.texture= larry
     #Calcul du deplacement en fct de la position du joueur
-    def deplacement(self, joueur_x=None, joueur_y = None):
-        kx= self.pos_x * self.speed
-        ky = self.pos_y * self.speed
+    def deplacement(self, t, joueur_x=None, joueur_y = None):
+        kx= self.pos_x * self.speed*60*t
+        ky = self.pos_y * self.speed*60*t
         if joueur_x != None and joueur_y != None :
             dx = joueur_x -self.rect.centerx
             dy = joueur_y - self.rect.centery
@@ -38,18 +38,18 @@ class Monstre:
             distance =math.sqrt(dx*dx + dy*dy)
             #Lorsque le joueur est proche
             if distance <500 and distance >0:
-                kx = (dx/distance) *self.speed
-                ky = (dy/distance) *self.speed
+                kx = (dx/distance) *self.speed*60*t
+                ky = (dy/distance) *self.speed*60*t
                 return (kx, ky)
         #sinon ça fait des choses aléatoires 
         if(random.random()<0.02):
             self.pos_x= random.choice(move)
             self.pos_y= random.choice(move)
         else:
-            kx= self.pos_x*self.speed
-            ky= self.pos_y * self.speed      
-
+            kx= self.pos_x*self.speed*60*t
+            ky= self.pos_y * self.speed*60*t  
         return (kx, ky)
+
     def collision(self, kx, ky, carte, objets):
         #Collision X
         self.rect.x += kx

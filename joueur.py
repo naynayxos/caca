@@ -55,7 +55,7 @@ class Joueur:
     def changerarme(self, num):
         self.arsenal = num
     
-    def updatetir(self, carte, objets, monstres):
+    def updatetir(self, carte, objets, monstres, t):
         objetcasse = [] #Liste obj casse pour le serveur
         #Coultdown arme
         if self.vitessetir > 0:
@@ -63,7 +63,7 @@ class Joueur:
         #Mise a jour position des tirs
         tiractuelle = []
         for balle in self.tir:
-            balle.deplacer()
+            balle.deplacer(t)
             touche_monstre= False
             for m in monstres:
                 if not m.mort and balle.rect.colliderect(m.rect):
