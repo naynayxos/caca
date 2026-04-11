@@ -21,7 +21,7 @@ def cone(portee, angle, couleur, couche = 80):
         dist = i/couche #De 1 (bout du cone) a 0 (proche du joueur)
         rayoncouche = int(portee*dist)
         #Degrade plus on est proche du joueur alors alpha = 255 sinon 0
-        alpha = int(255*(1-dist))
+        alpha = min(255, int(255*(1-(dist**0.5))*2))
         #Cone de rayon
         points= [(ix,iy)]
         for k in range(rond+1):
@@ -47,10 +47,11 @@ class Lumiere:
     def redimenssione(self, largeur, hauteur):
         self.largeur = largeur
         self.hauteur = hauteur
+        self.masque = pygame.Surface((self.largeur,self.hauteur), pygame.SRCALPHA)
 
     def conerota(self, anglejoueur):
         #Pivote le cone vers l'endroit ou regarde le joueur
-        anglerota = anglejoueur
+        anglerota = int(anglejoueur)%360
         if anglerota != self.angle:
             self.rotation = pygame.transform.rotate(self.cone, anglerota)
             self.angle = anglerota
@@ -67,7 +68,6 @@ class Lumiere:
             cone = self.conerota(joueur.angleactuel)
             rectcone = cone.get_rect(center=(cx,cy))
             #BLEND_RGBA_SUB ca retire le maque noir
-            self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
             self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
             self.masque.blit(cone, rectcone, special_flags=pygame.BLEND_RGBA_SUB)
         ecran.blit(self.masque, (0,0))

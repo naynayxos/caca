@@ -43,6 +43,7 @@ class Joueur:
         #Oxygne
         self.oxygenemax = 21600
         self.oxygene = self.oxygenemax
+        self.timeoxy = 0
         #Boutique
         self.pieces = 0
         self.arsenal_achete = {1: True}
@@ -70,9 +71,18 @@ class Joueur:
                         m.take_damage(10)
                         touche_monstre= True
             if not touche_monstre :
+<<<<<<< HEAD
                 #Verifie que la balle a percuter
                 touche = balle.collisionoupas(carte, objets)
                 if not touche:
+=======
+                zone = balle.rect.inflate(ZOOM*4, ZOOM*4)
+                objproche = [obj for obj in objets if zone.colliderect(obj.rect)]
+                touche = balle.collisionoupas(carte, objproche)
+                limx = HAUTEURMAP*ZOOM
+                limy = HAUTEURMAP*ZOOM
+                if not touche and (-1000<balle.rect.x<limx+1000) and (-1000<balle.rect.y<limy+1000):
+>>>>>>> 983fed2 (Version 0.3 Boutique + nuit)
                     tiractuelle.append(balle)
                 elif touche != "mur": 
                     #Touche objet destructible
@@ -182,6 +192,14 @@ class Joueur:
         return kx, ky
     
     def collision(self, kx, ky, carte, objets):
+<<<<<<< HEAD
+=======
+        #On lit les meubles au tour
+        zone = self.rect.inflate(ZOOM*4, ZOOM*4)
+        #Hitbox des meubles au tour pour opti
+        meubles = [obj.hitbox for obj in objets if obj.type == "meuble" and zone.colliderect(obj.rect)]
+
+>>>>>>> 983fed2 (Version 0.3 Boutique + nuit)
         #Collision X
         self.rect.x += kx
         o = obstacle(self.rect,carte)
@@ -228,11 +246,9 @@ class Joueur:
             if self.oxygene > 0:
                 self.oxygene -= 1
             else:
-                if not hasattr(self, 'timer'):
-                    self.timer = 0
-                self.timer += 1
-                if self.timer >= 60:  # Perte de vie toutes les secondes
-                    self.timer = 0
+                self.timeoxy += 1
+                if self.timeoxy >= 60:  # Perte de vie toutes les secondes
+                    self.timeoxy = 0
                     self.hp -= 5
         else:
             self.oxygene = self.oxygenemax
